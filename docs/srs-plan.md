@@ -2,8 +2,8 @@
 
 ## Status
 
-Phase 1 in progress: the plugin skeleton (step 2) and the read-only AE2 page (step 3) are built;
-the live check (step 4) is next. The project runs in two phases:
+Phase 1 is built and checked in the game, except receiving (it needs a second SRS client on the
+server; see step 4). Phase 2 is next. The project runs in two phases:
 
 - **Phase 1 — read-only SRS page.** An EXT page that shows every SRS radio: frequency,
   modulation, name, how many players are tuned, and who is transmitting or receiving.
@@ -199,7 +199,12 @@ pending values (standby), red for alerts, white for key legends.
    checked by `node src/web/srs-format.test.js` against `docs/samples/`. The preview's `busy`
    scenario reproduces the AE2 mockup's data.
 4. **Live check.** SRS connected to a server in EAM, the game running, the page open on a second
-   device. Check tuning, TX, RX and SRS restarts.
+   device. Checked in the game with SRS 2.4.1.0 on a local server: COM 1 follows the radio
+   selected in SRS's overlay and COM 2 takes the next usable radio; retuning moves the bars and
+   cursors; the scope switches between UHF AM, VHF AM and VHF FM with COM 1's radio; guard shows
+   `GRD OFF` for the FM radios; TX and `► YOU` show while push-to-talk is held and clear on
+   release. Still to check: receiving (speaker names, the speaker hold, `IsSecondary` on guard,
+   and `TunedClients` counts) with a second client, and an SRS restart mid-mission.
 
 ### Phase 2
 

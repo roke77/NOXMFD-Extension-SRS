@@ -10,8 +10,11 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 
 // ── canvas fit ──────────────────────────────────────────────────────────────────────────────
 const STAGE = 900;
+// The shell's vertical MAIN label sits on one side edge (either, depending on the pane), so both
+// sides keep the TGT page's inset: clamp(34px, 5vw, 48px).
+const sideInset = () => Math.min(48, Math.max(34, innerWidth * 0.05));
 function fitStage() {
-  const s = Math.min(innerWidth, innerHeight) / STAGE;
+  const s = Math.min(innerWidth - 2 * sideInset(), innerHeight) / STAGE;
   $('stage').style.transform =
     `translate(${(innerWidth - STAGE * s) / 2}px, ${(innerHeight - STAGE * s) / 2}px) scale(${s})`;
 }
@@ -30,7 +33,8 @@ function scopeSvg(v) {
   const x = (hz) => F.scopeX(hz, band, X0, X1);
   // Labels near the right edge anchor to their end so they stay inside the scope.
   const anchor = (px) => (px > X1 - 170 ? 'end' : 'start');
-  const off = (px) => (px > X1 - 170 ? -8 : 8);
+  // 14 clears the cursor's 7 px half-width triangle with a gap.
+  const off = (px) => (px > X1 - 170 ? -14 : 14);
   let s = `<path class="sc-grid" d="M${X0} 40H${X1}M${X0} 80H${X1}"/><path class="sc-base" d="M${X0} ${BASE}H${X1}"/>`;
   for (let hz = band.lo; hz <= band.hi + 1; hz += band.step) {
     const px = x(hz);
