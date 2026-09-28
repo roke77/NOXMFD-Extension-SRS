@@ -102,6 +102,22 @@ assert.strictEqual(Math.round(tallFit.H * tallFit.s), 1090);
 assert.strictEqual(F.fitCanvas(702, 900, 1160).portrait, false);  // slightly tall: dual draws bigger square
 assert.deepStrictEqual(F.fitCanvas(1000, 800, 900), { portrait: false, s: 800 / 900, W: 900, H: 900 });
 
+// Server presets: matched by the radio's name prefix and frequency; channel picks among duplicates.
+const presets = {
+  uhfguard: [{ Name: 'UNICOM', Frequency: 251 }, { Name: 'ARCHANGEL', Frequency: 264.5 }, { Name: 'ALT 251', Frequency: 251 }],
+  vhffm: [{ Name: 'LONGBOAT', Frequency: 30 }],
+};
+assert.strictEqual(F.presetKey('UHF Guard'), 'uhfguard');
+assert.strictEqual(F.presetName(presets, radios[1]), 'UNICOM');                              // UHF Guard on 251
+assert.strictEqual(F.presetName(presets, { ...radios[1], freq: 264.5e6, channel: 2 }), 'ARCHANGEL');
+assert.strictEqual(F.presetName(presets, { ...radios[1], channel: 3 }), 'ALT 251');           // channel breaks the tie
+assert.strictEqual(F.presetName(presets, { ...radios[1], channel: 2 }), 'UNICOM');            // stale channel: frequency wins
+assert.strictEqual(F.presetName(presets, { ...radios[1], freq: 264.525e6, channel: -1 }), null); // typed off-preset
+assert.strictEqual(F.presetName(presets, radios[3]), 'LONGBOAT');                             // VHF FM on 30
+assert.strictEqual(F.presetName(presets, radios[6]), null);                                   // VHF Guard: no list
+assert.strictEqual(F.presetName(null, radios[1]), null);
+assert.strictEqual(F.presetName({ uhfguard: 'junk' }, radios[1]), null);
+
 // Volume taps snap to 5%.
 assert.strictEqual(F.volAt(0, 220), 0);
 assert.strictEqual(F.volAt(220, 220), 1);

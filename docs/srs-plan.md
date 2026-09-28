@@ -5,7 +5,9 @@
 Phase 1 is released as 0.1.0 and checked in the game, except receiving (step 4). Phase 2's controls
 are released as 0.2.0, checked in the preview; their in-game check (Phase 2 step 3), together with
 receiving, is next. The compact layout, the PTT/MON heads, mute and the portrait canvas (from a
-tester's feedback) are built and checked in the preview, not yet released. The project runs in two phases:
+tester's feedback) are released as 0.3.0. Server preset names are built and checked in the game
+against a local SRS server, not yet released. The
+project runs in two phases:
 
 - **Phase 1 — read-only SRS page.** An EXT page that shows every SRS radio: frequency,
   modulation, name, how many players are tuned, and who is transmitting or receiving.
@@ -101,6 +103,26 @@ whose `freqMode` is OVERLAY; EAM's default radios are OVERLAY. SRS gives no repl
 learns the result from the next state packet. Transponder, retransmit and simultaneous-transmission
 commands exist but are out of scope.
 
+### Server presets: TCP to the SRS server
+
+Preset channels are configured on the SRS server: `Presets/<radio>.txt` next to its `server.cfg`,
+one `Name|MHz` per line, the file name normalised to letters and digits in lower case (`UHF Guard`
+→ `uhfguard.txt`), on when General Settings `SERVER_PRESETS_ENABLED` is true. The server sends its
+General Settings to each client in the reply to the client's `SYNC` message, including
+`SERVER_PRESETS`: a JSON string mapping each normalised radio name to `[{Name, Frequency}]`
+(Frequency in MHz). A radio uses the list whose key its own normalised name starts with. The
+client's state packet carries only the preset index (`channel`, 1-based, −1 = none): picking a
+preset in the overlay sets it, and typing a frequency clears it to −1. The client writes the names
+nowhere on disk.
+
+So the plugin asks the server directly. SRS's protocol is newline-delimited JSON over TCP (default
+port 5002): the plugin sends `{"Client":{"ClientGuid":…,"Name":"NOXMFD","Coalition":0},"MsgType":2,"Version":"2.4.1.0"}`
+(`2` = `SYNC`) and reads until the reply with `ServerSettings`, then disconnects. Any message from a
+new client id registers it, so the server lists a client named NOXMFD, and tells other clients
+about it, until the connection closes a moment later. The reply's settings hold no passwords (EAM
+passwords are in a section the server doesn't send). The server address is `LastServer=` in the
+SRS client's `global.cfg` (`host` or `host:port`).
+
 ## Architecture
 
 ```
@@ -123,8 +145,17 @@ page ──POST /ext/srs/command──► handler (main thread) ──validate�
   `{"cmd":"volume","radio":n,"vol":0.5}`. The handler checks the command against that allow-list,
   `radio` against 1–10 and numbers for range and finiteness, maps it to SRS's schema, and sends one
   datagram to `127.0.0.1:9040`. Nothing else reaches SRS.
+- **Presets** (`SrsPresets.cs`, `SrsPresetSync.cs`). While SRS is sending state, the plugin reads
+  `LastServer` from the SRS client's `global.cfg` every 5 s (shared read access: the client
+  rewrites the file) and, when it names a server it hasn't fetched from, fetches `SERVER_PRESETS`
+  on a pool thread (5 s timeouts; a failure is logged and retried after a minute). The slice then
+  carries `"presets":"<SERVER_PRESETS>"`, the server's JSON string copied verbatim as a string field,
+  so a malformed list can't break the slice; the page parses it when it changes. The page shows a
+  radio's preset by frequency, using `channel` to choose among presets that share one.
+  `tools/cmdcheck` checks the parsing, and its `fetch [host[:port]]` mode runs the real fetch.
 - **Config** (BepInEx `.cfg`): state port (default 7082) and command port (default 9040), matching
-  SRS's own settings.
+  SRS's own settings; **Server presets** (on) and **SRS client folder** (default
+  `C:\Program Files\DCS-SimpleRadio-Standalone\Client`, where `global.cfg` is).
 - **Page** (`src/web/`): `srs.html`, `srs.css`, `srs.js`, plus a pure `srs-format.js` (the packet
   rules, speaker hold, MON default and scope geometry) with a `node` test, as in the other
   extensions. Reuses NOXMFD's `/assets/shared/theme.css`, `font.css` and `telemetry-source.js`.
@@ -258,9 +289,11 @@ pending values (standby), red for alerts, white for key legends.
 - **SRS format changes.** The packet is SRS's internal state serialized as-is, not a documented
   API. Forwarding it raw limits a change to `srs.js`; the capture in `docs/samples/` is the
   reference to diff against.
-- **Preset names.** Server and client preset channel names (`SyncedServerSettings`,
-  `FilePresetChannelsStore`) aren't in the packet. Phase 1 shows the radio's `name` and `channel`
-  number only.
+- **Preset names.** Server presets need the short server connection above, which the server's
+  admin and players see as a client named NOXMFD for a moment, once per server per game session;
+  the **Server presets** setting turns it off. A server that changes its presets while the game
+  runs shows the old names until the game restarts. Presets from the player's own client files
+  (`FilePresetChannelsStore`) aren't read.
 - **Local only.** SRS and the game must run on the same PC; the extension talks to `127.0.0.1`.
 - **In a mission only.** NOXMFD carries extension slices inside its mission telemetry frame; at the
   main menu it sends pings without them, so the page shows SRS state only while a mission runs.
@@ -269,8 +302,6 @@ pending values (standby), red for alerts, white for key legends.
 
 - Do players' servers push custom EAM radios (`AllowServerEAMRadioPreset`), and what are the radio
   names? This decides whether `name` alone is useful enough in Phase 1.
-- Preset channels: servers configure them, and SRS syncs them over its own server connection. The
-  state packet only carries each radio's preset index (`channel`, −1 = none), so the page can't
-  show preset names. SRS does step presets over UDP (`CHANNEL_UP` / `CHANNEL_DOWN`; EAM reports
-  `control` 0, the HOTAS mode those commands need). Is stepping presets without their names
-  useful?
+- Do server admins mind the brief NOXMFD client the preset fetch shows?
+- Should `▲`/`▼` step through presets? SRS steps them over UDP (`CHANNEL_UP` / `CHANNEL_DOWN`; EAM
+  reports `control` 0, the HOTAS mode those commands need), and the names now follow.

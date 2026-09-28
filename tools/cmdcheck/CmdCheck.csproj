@@ -1,5 +1,7 @@
-<!-- dotnet run -project tools/cmdcheck — self-check for SrsCommandMap (the page → SRS command allow-list).
-     Compiles the plugin's Unity-free file directly, so it needs no game install. -->
+<!-- dotnet run -project tools/cmdcheck — self-check for SrsCommandMap (the page → SRS command allow-list)
+     and SrsPresetSync (reading the server's preset list). Compiles the plugin's Unity-free files
+     directly, so it needs no game install. Passing the arguments `fetch [host[:port]]` after the usual separator
+     runs the real preset fetch against an SRS server instead. -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -9,5 +11,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\src\plugin\SrsCommandMap.cs" />
+    <Compile Include="..\..\src\plugin\SrsPresetSync.cs" />
   </ItemGroup>
 </Project>

@@ -112,6 +112,8 @@ button:disabled { cursor: default; opacity: 0.35; }
 .com-foot { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--no-green-dim); min-height: 32px; }
 .com-foot .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
 .who { color: var(--no-white); font-size: 16px; }
+/* The server preset the head's radio is on, beside ACTIVE. */
+.pre-n { color: var(--no-white); font-size: 16px; letter-spacing: 2px; }
 /* The VOL bar is a 32 px tall tap target around the thin visible bar. */
 .vol { display: block; width: 160px; height: 32px; padding: 12px 0; }
 .vol > div { height: 8px; background: var(--no-green-dark); border-radius: 2px; }
@@ -156,6 +158,10 @@ button:disabled { cursor: default; opacity: 0.35; }
 .rad.off { color: var(--no-white-dark); }
 .rad-top { display: flex; align-items: center; gap: 8px; font-size: 16px; }
 .rad-top .f { color: var(--no-white); }
+/* Preset names stand in for frequencies and can be longer: they cut off with an ellipsis. */
+.f.pre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rad-top .f.pre { max-width: 110px; }
+.portrait .rad-top .f.pre { max-width: 200px; }
 .rad.off .rad-top .f { color: var(--no-white-dark); }
 .rad-who { font-size: 13px; letter-spacing: 1px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--no-white-dark); }
 .rad-who.rx { color: var(--no-white); }
@@ -170,7 +176,9 @@ button:disabled { cursor: default; opacity: 0.35; }
 .row.c1 .row-pick { border: 2px solid var(--no-amber); color: var(--no-amber); }
 .row.off .row-pick { color: var(--no-white-dark); }
 .row-pick .rn { width: 44px; text-align: left; }
-.row-pick .f { width: 96px; text-align: left; color: var(--no-white); }
+/* One width for frequencies and preset names, so the speaker column lines up down the rows. */
+.row-pick .f { flex: 0 0 auto; width: 180px; text-align: left; color: var(--no-white); }
+.portrait .row-pick .f { width: 140px; }
 .row.off .row-pick .f { color: var(--no-white-dark); }
 .row-pick .rad-who { flex: 1; max-width: none; text-align: left; font-size: 16px; }
 .row-pick .tun { font-size: 14px; color: var(--no-green-dim); }

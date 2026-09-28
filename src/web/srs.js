@@ -133,7 +133,7 @@ function comHtml(n, v, title) {
   const label = n === 2 ? `${title} · ${pick(-1, '◄', 'Previous')}${name}${pick(1, '►', 'Next')}` : `${title} · ${name}`;
   return `<div class="com-top"><span class="com-name">${label}</span>${badge}</div>
     <div class="com-mid">
-      <div class="act"><span class="lbl">ACTIVE</span><span class="act-f">${r ? F.freq(r.freq) : F.DASH}</span></div>
+      <div class="act"><span class="lbl">ACTIVE${r && v.names[i] ? ` · <span class="pre-n">${esc(v.names[i])}</span>` : ''}</span><span class="act-f">${r ? F.freq(r.freq) : F.DASH}</span></div>
       <button class="swap" data-act="swap" data-com="${n}" aria-label="Swap ${title} active and standby"${tun && sby ? '' : ' disabled'}>${SWAP}</button>
       <button class="sby" data-act="sby" data-com="${n}" aria-label="${title} standby frequency, tap to type"${disabled}><span class="lbl">STANDBY</span><span class="sby-v">${sby ? F.freq(sby) : F.DASH}${KP}</span></button>
       <div class="steps"><button data-act="up" data-com="${n}" aria-label="${title} standby up"${disabled}>▲</button><button data-act="down" data-com="${n}" aria-label="${title} standby down"${disabled}>▼</button></div>
@@ -155,6 +155,13 @@ function activity(v, i) {
   };
 }
 
+// A radio's preset name where it's on one (in place of the frequency, which stays in the tooltip),
+// else its frequency.
+function freqOrPreset(v, i, r) {
+  const name = v.names[i];
+  return name ? `<span class="f pre" title="${F.freq(r.freq)} MHZ">${esc(name)}</span>` : `<span class="f">${F.freq(r.freq)}</span>`;
+}
+
 function radsHtml(v) {
   let s = '';
   for (let i = 1; i <= 10; i++) {
@@ -166,7 +173,7 @@ function radsHtml(v) {
     }
     const { lamp, who } = activity(v, i);
     const cls = i === v.com[1] ? ' c1' : i === v.com[2] ? ' c2' : '';
-    s += `<button class="rad${cls}" data-act="rad" data-r="${i}" aria-label="Talk on R${i}"><span class="rad-top"><span class="lamp ${lamp}"></span>R${i}<span class="f">${F.freq(r.freq)}</span></span>${who}</button>`;
+    s += `<button class="rad${cls}" data-act="rad" data-r="${i}" aria-label="Talk on R${i}"><span class="rad-top"><span class="lamp ${lamp}"></span>R${i}${freqOrPreset(v, i, r)}</span>${who}</button>`;
   }
   return s;
 }
@@ -181,20 +188,22 @@ function rowsHtml(v) {
     }
     const { lamp, who } = activity(v, i), muted = !(r.volume > 0);
     const mute = `<button class="mute${muted ? ' on' : ''}" data-act="mute" data-r="${i}" aria-label="${muted ? 'Unmute' : 'Mute'} R${i}"${r.volMode === 1 ? '' : ' disabled'}>${muted ? 'MUTED' : 'MUTE'}</button>`;
-    s += `<div class="row${i === v.com[1] ? ' c1' : ''}"><button class="row-pick" data-act="rad" data-r="${i}" aria-label="Select R${i}"><span class="lamp ${lamp}"></span><span class="rn">R${i}</span><span class="f">${F.freq(r.freq)}</span>${who}<span class="tun">${v.tuned[i] || 0} TUNED</span></button>${mute}</div>`;
+    s += `<div class="row${i === v.com[1] ? ' c1' : ''}"><button class="row-pick" data-act="rad" data-r="${i}" aria-label="Select R${i}"><span class="lamp ${lamp}"></span><span class="rn">R${i}</span>${freqOrPreset(v, i, r)}${who}<span class="tun">${v.tuned[i] || 0} TUNED</span></button>${mute}</div>`;
   }
   return s;
 }
 
 // ── render ──────────────────────────────────────────────────────────────────────────────────
-function view(st) {
+function view(st, presets) {
   const info = st.RadioInfo, radios = info.radios || [];
   const now = Date.now(), rx = {};
   (st.RadioReceivingState || []).forEach((e, i) => { const w = F.speaker(e, i, now, held); if (w) rx[i] = w; });
   const sel = info.selected;
   const com = { 1: F.usable(radios[sel]) ? sel : -1, 2: F.com2Pick(radios, sel, com2Stored) };
   const band = F.bandFor(radios[com[1]]) || F.bandFor(radios[com[2]]) || F.BANDS[0];
-  return { radios, tuned: st.TunedClients || [], send: st.RadioSendingState, rx, com, band, st };
+  const names = {};
+  for (let i = 1; i < radios.length; i++) names[i] = F.presetName(presets, radios[i]);
+  return { radios, tuned: st.TunedClients || [], send: st.RadioSendingState, rx, com, band, names, st };
 }
 
 // Only touch the DOM when a block's markup changed: rebuilding buttons at 10 Hz could swap one out
@@ -234,6 +243,17 @@ function statusText(s) {
   return `NO SRS DATA ON UDP ${s.port}`;
 }
 
+// The server's preset list arrives as a JSON string in every frame (Plugin.cs BuildSlice); it's
+// parsed only when it changes. A list that doesn't parse is ignored: frequencies show instead.
+let presetsRaw = null, presets = null;
+function readPresets(raw) {
+  if (raw === presetsRaw) return presets;
+  presetsRaw = raw;
+  try { presets = typeof raw === 'string' ? JSON.parse(raw) : null; }
+  catch (e) { presets = null; console.warn('[SRS] unreadable server presets:', e.message); }
+  return presets;
+}
+
 function show(s) {
   // Without live data the page would show stale radios as current, so every other path clears it.
   if (!s.ok) return render(null, statusText(s), true);
@@ -241,7 +261,7 @@ function show(s) {
   // reports itself instead of throwing on every frame.
   const info = s.state && s.state.RadioInfo;
   if (!info || !Array.isArray(info.radios)) return render(null, 'UNRECOGNISED SRS DATA', true);
-  render(view(s.state), `● ${info.unit} · ${s.state.ClientCountConnected} ON SERVER`, false);
+  render(view(s.state, readPresets(s.presets)), `● ${info.unit} · ${s.state.ClientCountConnected} ON SERVER`, false);
 }
 
 // Re-render right after a local change instead of waiting for the next 10 Hz frame.

@@ -46,6 +46,8 @@ local state broadcast, so it doesn't modify NOXMFD or SRS.
   radio you listen to, picked with its ◄ ► buttons. Each shows the frequency, TX/RX, modulation, players tuned, and the speaker or
   volume.
 - **Every radio at a glance:** R1–R10 with frequency and who's talking, `► YOU` while you transmit.
+- **Preset names.** When your SRS server has preset channels, a radio on one shows its name (like
+  `ARCHANGEL`) in place of the frequency. See **Server presets** below.
 - **Tune from the page.** Each head has a standby frequency: step it with ▲▼ or tap it to type one
   on the keypad, then swap it in. Tap a radio to talk on it (it becomes PTT). Tap the VOL bar to
   set the volume. Standby frequencies and your MON radio are remembered in the browser.
@@ -86,8 +88,14 @@ In `BepInEx/config/com.roque.srs-module.cfg` (or BepInEx's configuration manager
   another program already uses 7082, and set the same port in SRS's settings.
 - **Command port** (default `9040`): the UDP port SRS listens on for commands. Match it to SRS's
   setting if you've changed that.
+- **Server presets** (default on): show your SRS server's preset channel names. SRS keeps them on
+  the server, so the extension reads them the way SRS's own client does: it connects to the server
+  your SRS client uses for a moment, once per server each time you play. During that moment the
+  server lists a client named **NOXMFD**. Turn this off if you'd rather it didn't connect.
+- **SRS client folder** (default `C:\Program Files\DCS-SimpleRadio-Standalone\Client`): where SRS's
+  client is installed. Its `global.cfg` says which server your SRS client last connected to.
 
-Restart the game after changing either.
+Restart the game after changing any of these.
 
 ---
 

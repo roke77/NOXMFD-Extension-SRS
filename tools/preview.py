@@ -9,7 +9,9 @@ Plugin.BuildSlice. GET /scenario?s=<name> switches what the stream sends:
   rx                idle with R1 receiving VIPER 1-1
   busy              AE2's mockup data: PTT on R2 transmitting, R1 and R5 receiving, players
                     tuned, volumes, R8 muted
-  live              real SRS packets from UDP 127.0.0.1:7082 (don't run the game at the same time)
+  presets           busy plus a server preset list, so preset names show
+  live              real SRS packets from UDP 127.0.0.1:7082 (don't run the game at the same time),
+                    plus the preset list fetched from the SRS client's LastServer like SrsPresets
   unknown           a packet shape the page doesn't recognise
   no-data, port-busy, stale, nomission
 POST /ext/srs/command is checked like SrsCommandMap.cs; in live mode the datagram goes to the real
@@ -17,7 +19,7 @@ SRS on UDP 9040, otherwise a rough simulation applies it to the mock. GET /comma
 GET /shot?layout=compact|dual switches to busy, seeds the page's own saved state (standby
 frequencies, MON on R1) and opens the page in that layout: the README screenshots.
 """
-import copy, json, socket, sys, threading, time
+import copy, json, socket, sys, threading, time, uuid
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
@@ -50,7 +52,40 @@ BUSY["ClientCountConnected"] = 23
 
 state = {"s": "idle"}
 live = {"packet": None, "at": 0.0, "error": None}
-MOCKS = {"idle": SAMPLES["idle"], "tx": SAMPLES["tx"], "rx": RX, "busy": BUSY}
+MOCKS = {"idle": SAMPLES["idle"], "tx": SAMPLES["tx"], "rx": RX, "busy": BUSY, "presets": BUSY}
+# The server's SERVER_PRESETS setting for the presets scenario (the slice carries it as a string).
+PRESETS = json.dumps({
+    "uhfguard": [{"Name": "UNICOM", "Frequency": 251}, {"Name": "ARCHANGEL", "Frequency": 264.5},
+                 {"Name": "SPECTRE/COMMAND", "Frequency": 305.25}],
+    "vhfguard": [{"Name": "TOWER", "Frequency": 124.8}, {"Name": "APPROACH", "Frequency": 131}],
+    "vhffm": [{"Name": "LONGBOAT", "Frequency": 30}]})
+SRS_CLIENT = Path(r"C:\Program Files\DCS-SimpleRadio-Standalone\Client")
+
+
+def fetch_presets():
+    """Mirrors SrsPresets/SrsPresetSync: SYNC to the SRS client's LastServer, keep SERVER_PRESETS."""
+    try:
+        cfg = (SRS_CLIENT / "global.cfg").read_text("utf-8", errors="replace")
+        server = next(l.split("=", 1)[1].strip() for l in cfg.splitlines() if l.startswith("LastServer="))
+        host, _, port = server.partition(":")
+        msg = {"Client": {"ClientGuid": uuid.uuid4().hex[:22], "Name": "NOXMFD", "Coalition": 0},
+               "MsgType": 2, "Version": "2.4.1.0"}
+        with socket.create_connection((host, int(port or 5002)), timeout=5) as s:
+            s.sendall((json.dumps(msg) + "\n").encode())
+            buf = b""
+            while True:
+                chunk = s.recv(65536)
+                if not chunk: break
+                buf += chunk
+                lines = buf.split(b"\n")
+                done = [json.loads(l) for l in lines[:-1] if b'"ServerSettings"' in l]
+                if done:
+                    live["presets"] = done[0]["ServerSettings"].get("SERVER_PRESETS")
+                    print("presets from", server, ":", live["presets"])
+                    return
+    except Exception as e:
+        print("preset fetch failed:", e)
+
 commands = []  # every command body received, for GET /commands
 
 # SRS's UDPCommandType ids, as SrsCommandMap.cs sends them.
@@ -95,7 +130,9 @@ def listen_live():
 
 def slice_for(name):
     if name in MOCKS:
-        return {"ok": True, "ageMs": 80, "state": MOCKS[name]}
+        s = {"ok": True, "ageMs": 80, "state": MOCKS[name]}
+        if name == "presets": s["presets"] = PRESETS
+        return s
     if name == "unknown":
         return {"ok": True, "ageMs": 60, "state": {"Radios": []}}
     if name == "live":
@@ -104,7 +141,9 @@ def slice_for(name):
         age = int((time.time() - live["at"]) * 1000)
         if age > 1000:
             return {"ok": False, "reason": "stale", "port": 7082, "ageMs": age}
-        return {"ok": True, "ageMs": age, "state": live["packet"]}
+        s = {"ok": True, "ageMs": age, "state": live["packet"]}
+        if live.get("presets"): s["presets"] = live["presets"]
+        return s
     if name == "stale":
         return {"ok": False, "reason": "stale", "port": 7082, "ageMs": 4200}
     return {"ok": False, "reason": name, "port": 7082, "ageMs": -1}
@@ -139,6 +178,7 @@ class H(BaseHTTPRequestHandler):
             if state["s"] == "live" and not live.get("thread"):
                 live["thread"] = threading.Thread(target=listen_live, daemon=True)
                 live["thread"].start()
+                threading.Thread(target=fetch_presets, daemon=True).start()
             body = json.dumps(state, default=str).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers()
             self.wfile.write(body); return

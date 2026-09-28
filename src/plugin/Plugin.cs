@@ -6,8 +6,9 @@ using UnityEngine;
 namespace SrsModule
 {
     // A separate BepInEx plugin, not part of NOXMFD.dll: it registers the SRS page with NOXMFD's
-    // public Api, publishes SRS's latest state packet as the page's slice, and forwards the page's
-    // commands to SRS through SrsCommands (docs/srs-plan.md).
+    // public Api, publishes SRS's latest state packet (plus the server's preset list, SrsPresets) as
+    // the page's slice, and forwards the page's commands to SRS through SrsCommands
+    // (docs/srs-plan.md).
     [BepInPlugin("com.roque.srs-module", "NOXMFD: SRS Extension", MyPluginInfo.PLUGIN_VERSION)]
     [BepInDependency("com.roque.NOXMFD", "0.59.0")]
     [BepInProcess("NuclearOption.exe")]
@@ -24,6 +25,7 @@ namespace SrsModule
         private ConfigEntry<int>? _statePort;
         private ConfigEntry<int>? _commandPort;
         private SrsListener? _listener;
+        private SrsPresets? _presets;
         private float _nextPublish;
         private bool _registered;
 
@@ -36,6 +38,10 @@ namespace SrsModule
             _commandPort = Config.Bind("SRS", "Command port", 9040,
                 new ConfigDescription("UDP port SRS listens on for commands (SRS setting CommandListenerUDP). Restart the game after changing it.",
                     new AcceptableValueRange<int>(1024, 65535)));
+            var serverPresets = Config.Bind("SRS", "Server presets", true,
+                "Show the SRS server's preset channel names. The extension reads them by connecting to the SRS server your SRS client uses, the way SRS's client does, for a moment (it shows as a client named NOXMFD). Restart the game after changing it.");
+            var clientFolder = Config.Bind("SRS", "SRS client folder", @"C:\Program Files\DCS-SimpleRadio-Standalone\Client",
+                "SRS's Client folder; its global.cfg says which SRS server to read presets from. Restart the game after changing it.");
 
             _registered = NOXMFD.Api.RegisterExtension(ExtId, "SRS", SrsPageAssets.Resolve, SrsCommands.Handle);
             if (!_registered)
@@ -44,6 +50,7 @@ namespace SrsModule
                 return;
             }
             _listener = new SrsListener(_statePort.Value);
+            if (serverPresets.Value) _presets = new SrsPresets(clientFolder.Value);
             SrsCommands.Init(_commandPort.Value);
             Log.LogInfo($"SRS extension loaded; listening on UDP 127.0.0.1:{_statePort.Value}, commands to {_commandPort.Value}.");
         }
@@ -52,17 +59,23 @@ namespace SrsModule
         {
             if (!_registered || _listener == null || Time.unscaledTime < _nextPublish) return;
             _nextPublish = Time.unscaledTime + PublishInterval;
-            NOXMFD.Api.PublishSlice(ExtId, BuildSlice(_listener, _statePort!.Value));
+            string slice = BuildSlice(_listener, _statePort!.Value, _presets?.Raw, out bool live);
+            _presets?.Tick(Time.unscaledTime, live);
+            NOXMFD.Api.PublishSlice(ExtId, slice);
         }
 
         // ponytail: forwards SRS's whole packet (~4 KB) in every 10 Hz frame so the page does all the
         // parsing and SRS field changes stay out of C#. If frame size ever matters, trim the packet
         // to the fields srs.js reads before publishing.
-        private static string BuildSlice(SrsListener listener, int port)
+        // `presets` is the server's preset list as a raw JSON string (SrsPresets), sent as a string
+        // field so a malformed list can't break the slice; the page parses it.
+        private static string BuildSlice(SrsListener listener, int port, string? presets, out bool live)
         {
             bool have = listener.TryGetLatest(out string packet, out long ageMs, out _);
-            if (have && ageMs <= StaleMs)
-                return "{\"ok\":true,\"ageMs\":" + ageMs + ",\"state\":" + packet + "}";
+            live = have && ageMs <= StaleMs;
+            if (live)
+                return "{\"ok\":true,\"ageMs\":" + ageMs + ",\"state\":" + packet +
+                       (presets != null ? ",\"presets\":\"" + presets + "\"" : "") + "}";
             string reason = listener.Error ?? (have ? "stale" : "no-data");
             return "{\"ok\":false,\"reason\":\"" + reason + "\",\"port\":" + port + ",\"ageMs\":" + ageMs + "}";
         }

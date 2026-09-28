@@ -107,6 +107,24 @@
     return current;
   }
 
+  // ── server presets (docs/srs-plan.md, "Server presets") ──
+  // SRS's radio-name key: letters and digits only, lower case ("UHF Guard" → "uhfguard").
+  const presetKey = (name) => String(name ?? '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  // The preset name a radio is on, or null. `presets` is the server's list (normalised radio name →
+  // [{Name, Frequency in MHz}]); like SRS, a radio uses the list whose key its own name starts with.
+  // A preset matches by frequency; SRS's `channel` (1-based, -1 = none) picks among presets that
+  // share one, when it points at a matching entry.
+  function presetName(presets, r) {
+    if (!presets || typeof presets !== 'object' || !r) return null;
+    const n = presetKey(r.name);
+    const key = Object.keys(presets).find((k) => k && n.startsWith(k));
+    const list = key && Array.isArray(presets[key]) ? presets[key] : null;
+    if (!list) return null;
+    const at = (p) => !!p && fin(p.Frequency) && Math.round(p.Frequency * 1e6) === r.freq && p.Name != null;
+    const hit = r.channel > 0 && at(list[r.channel - 1]) ? list[r.channel - 1] : list.find(at);
+    return hit ? String(hit.Name) : null;
+  }
+
   // The canvas for a w×h pane (after the side insets): the 900×900 square, or the 640-wide portrait
   // canvas as tall as the pane when the pane is at least 1.2× taller than wide and portrait draws
   // bigger. minH is what the layout needs at 640 wide. s is the scale, W×H the canvas size.
@@ -122,7 +140,7 @@
 
   const api = { DASH, MOD, BANDS, HOLD_MS, STEP_HZ, freq, modName, usable, com2Default, isTx,
     speaker, bandFor, scopeX, scopeBars, tunable, clampHz, stepHz, parseMhz, entryError,
-    com2Pick, monStep, fitCanvas, volAt };
+    com2Pick, monStep, fitCanvas, volAt, presetKey, presetName };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.SrsFormat = api;
 })(this);
