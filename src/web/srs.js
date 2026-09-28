@@ -82,15 +82,16 @@ function scopeSvg(v) {
     s += `<rect class="sc-bar${b.rx ? ' rx' : ''}" x="${px - 5}" y="${BASE - h}" width="10" height="${h}"/>`;
     if (b.rx) s += `<text class="sc-who" x="${px + off(px) * 1.5}" y="${Math.min(BASE - 8, BASE - h + 14)}" text-anchor="${anchor(px)}">◄ ${esc(b.rx.who)}</text>`;
   }
-  // COM cursors: COM 2 first so COM 1 draws on top when they share a frequency. Standby cursors are
-  // dashed and labelled only "SBY" (the color says which COM), to keep the top rows readable.
-  [['c2', v.com[2], 32], ['c1', v.com[1], 16]].forEach(([cls, i, y]) => {
+  // COM cursors: COM 2 first so COM 1 draws on top when they share a frequency. Each label has its
+  // own row (active: 16 / 32, standby: 48 / 64), so a standby close to an active frequency can't
+  // overprint it. Standby cursors are dashed and labelled "SBY"; the color says which COM.
+  [['c2', v.com[2], 32, 64], ['c1', v.com[1], 16, 48]].forEach(([cls, i, y, sbyY]) => {
     const r = v.radios[i];
     if (i < 0 || !r || F.bandFor(r) !== band) return;
     const sby = standby[i];
     if (sby && sby >= band.lo && sby <= band.hi) {
       const sx = x(sby);
-      s += `<path class="sc-cur sc-sby ${cls}" d="M${sx} 18V${BASE}"/><text class="sc-lbl ${cls}" x="${sx + off(sx)}" y="${y}" text-anchor="${anchor(sx)}">SBY</text>`;
+      s += `<path class="sc-cur sc-sby ${cls}" d="M${sx} 18V${BASE}"/><text class="sc-lbl ${cls}" x="${sx + off(sx)}" y="${sbyY}" text-anchor="${anchor(sx)}">SBY</text>`;
     }
     const px = x(r.freq);
     s += `<path class="sc-cur ${cls}" d="M${px} 18V${BASE}"/><path class="sc-tri ${cls}" d="M${px - 7} 8h14l-7 10z"/>` +
