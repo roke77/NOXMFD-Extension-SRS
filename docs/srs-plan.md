@@ -3,8 +3,8 @@
 ## Status
 
 Phase 1 is released as 0.1.0 and checked in the game, except receiving (step 4). Phase 2's controls
-are built and checked in the preview; the in-game check, together with receiving, is next. The
-project runs in two phases:
+are released as 0.2.0, checked in the preview; their in-game check (Phase 2 step 3), together with
+receiving, is next. The project runs in two phases:
 
 - **Phase 1 — read-only SRS page.** An EXT page that shows every SRS radio: frequency,
   modulation, name, how many players are tuned, and who is transmitting or receiving.
@@ -239,7 +239,7 @@ pending values (standby), red for alerts, white for key legends.
 
 - GitHub releases only; the extension is not listed in NOMM (the NOMNOM registry).
 - The zip holds `NOXMFD.SrsModule/NOXMFD.SrsModule.dll`, extracted into `BepInEx/plugins/`.
-- `0.1.0` is Phase 1, the read-only page; Phase 2 ships as the next minor version.
+- `0.1.0` is Phase 1, the read-only page; `0.2.0` is Phase 2, the controls.
 
 ## Risks and limits
 
