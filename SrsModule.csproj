@@ -24,7 +24,7 @@
     <AssemblyName>NOXMFD.SrsModule</AssemblyName>
     <Product>NOXMFD: SRS Extension</Product>
     <Description>SRS radio page for NOXMFD</Description>
-    <Version>0.0.1</Version>
+    <Version>0.1.0</Version>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <RootNamespace>SrsModule</RootNamespace>

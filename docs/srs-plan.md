@@ -176,6 +176,17 @@ One full page on the 900×900 canvas used by the other extension pages.
 Step size for `▲`/`▼` follows the modulation: 25 kHz for AM/FM. Stepped and typed frequencies are
 clamped to the radio's `freqMin`–`freqMax`, and only radios with `freqMode` 1 accept them.
 
+Phase 2 controls:
+
+- **Selecting a COM:** tapping a COM head makes it the selected COM (amber border). Tapping an R
+  button assigns that radio to the selected COM; with COM 1 selected that sends `ACTIVE_RADIO`.
+- **Keypad:** the NOAutopilot page's keypad overlay, adapted for frequencies (digits, decimal
+  point, CLR, CANCEL, ENTER), showing the radio's tuning range and rejecting entries outside it.
+- **Volume:** tapping a point on a head's VOL bar sets that volume (`SET_VOLUME`).
+- **Guard:** tapping a head's `GRD` text toggles guard (`TOGGLE_GUARD`).
+- **Remembered in the browser** (`localStorage`, per device): each radio's standby frequency and
+  the COM 2 assignment. COM 2 falls back to its default when its radio becomes unusable.
+
 Colors follow NOXMFD's theme tokens: green for live values, amber for the selection and for
 pending values (standby), red for alerts, white for key legends.
 
@@ -212,6 +223,12 @@ pending values (standby), red for alerts, white for key legends.
 2. **Controls** on the page: standby frequencies, swap, `▲`/`▼`, the keypad overlay, radio
    assignment, and volume.
 3. **Live check** of every command against SRS's overlay.
+
+## Releases
+
+- GitHub releases only; the extension is not listed in NOMM (the NOMNOM registry).
+- The zip holds `NOXMFD.SrsModule/NOXMFD.SrsModule.dll`, extracted into `BepInEx/plugins/`.
+- `0.1.0` is Phase 1, the read-only page; Phase 2 ships as the next minor version.
 
 ## Risks and limits
 
