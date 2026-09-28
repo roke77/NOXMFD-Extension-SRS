@@ -11,7 +11,8 @@ Planning. Nothing is built yet. The project runs in two phases:
 
 Neither phase needs a NOXMFD core change: the page uses extension API sections 1–4 (page serving,
 telemetry slice, commands, EXT navigation; see NOXMFD's `docs/extensions-api.md`). This plan was
-checked against the SRS source on `master` (latest release 2.4.1.0).
+checked against the SRS source on `master` (latest release 2.4.1.0) and against packets captured
+from SRS 2.4.1.0 in EAM (`docs/samples/`).
 
 ## Source ticket
 
@@ -40,7 +41,8 @@ process access, no dependency on SRS assemblies.
 
 `DCSRadioSyncHandler.SendRadioUpdateToDCSAsync` sends one newline-terminated JSON packet to
 `127.0.0.1:7080` (meant for DCS) and `127.0.0.1:7082` (meant for flight panels) each time SRS
-processes radio info. In EAM that is a fixed loop every **200 ms**. Nuclear Option doesn't bind
+processes radio info. In EAM that is a fixed loop every **200 ms** (about 5 packets a second,
+roughly 4 KB each, in the captures). Nuclear Option doesn't bind
 7080, but the extension listens on 7082: that port exists for third-party consumers. Both ports are
 configurable in SRS (`OutgoingDCSUDPInfo`, `OutgoingDCSUDPOther`).
 
@@ -48,21 +50,33 @@ The packet is a serialized `CombinedRadioState`:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `RadioInfo.radios[]` | `DCSRadio[11]` | Index 0 is intercom, 1–10 are radios. Per radio: `name`, `freq` (Hz), `modulation`, `secFreq` (guard: Hz when set, `0` = off, `1` = re-enabled from the overlay), `channel` (−1 = none), `volume`, `enc`, `encKey`, `rxOnly`, `retransmit`, `simul` |
+| `RadioInfo.radios[]` | `DCSRadio[11]` | Index 0 is intercom, 1–10 are radios. Per radio: `name`, `freq` (Hz), `freqMin`/`freqMax` (Hz, the tuning range), `freqMode` (`1` = tunable from the overlay), `modulation`, `secFreq` (guard, see below), `channel` (−1 = none), `volume`, `enc`, `encKey`, `rxOnly`, `retransmit`, `simul` |
 | `RadioInfo.selected` | short | Selected radio index |
+| `RadioInfo.name` | string | The player's EAM name |
 | `RadioInfo.unit`, `unitId` | string, uint | `"EAM"` in External AWACS Mode |
 | `RadioSendingState` | object | `IsSending`, `SendingOn` (radio index), `IsEncrypted` |
-| `RadioReceivingState[]` | `[11]`, entries may be null | Per radio: `IsReceiving` (true for 350 ms after the last voice packet), `SentBy` (speaker name), `ReceivedOn`, `IsSecondary` (heard on guard), `IsSimultaneous`, `LastReceivedAt` (local `DateTime` ticks) |
+| `RadioReceivingState[]` | `[11]` | Per radio: `IsReceiving` (true for 350 ms after the last voice packet), `SentBy` (speaker name), `ReceivedOn`, `IsSecondary` (heard on guard), `IsSimultaneous`, `LastReceivedAt` (local `DateTime` ticks). An entry is `null` until that radio first receives. |
 | `ClientCountConnected` | int | Clients on the server |
-| `TunedClients[]` | `int[11]` | Clients tuned to each radio's frequency and modulation; 0 while disconnected |
+| `TunedClients[]` | `int[11]` | Clients tuned to each radio's frequency and modulation; 0 while disconnected. With only the local client connected every entry is 0, so the count appears to exclude the local client. |
 
 `modulation` values: `0` AM, `1` FM, `2` INTERCOM, `3` DISABLED, `4` HAVEQUICK, `5` SATCOM, `6` MIDS,
-`7` SINCGARS.
+`7` SINCGARS. Radio 0 is named `SATCOM` in the default EAM set but has modulation INTERCOM, so the
+page goes by `modulation`, not `name`.
 
-SRS strips fields marked `[JsonDCSIgnoreSerialization]` from this packet through a resolver that
-checks the attribute on the property's *type*, so which of those fields actually appear (`freqMin`,
-`freqMax`, `freqMode`, `volMode`, `expansion`) is unclear from the source alone. The first build
-step captures a real packet and pins the field set.
+The captures pin these rules:
+
+- **Guard (`secFreq`).** Above 1: guard is on at that frequency (Hz). `0`: guard is off. `1`: guard
+  is on with no guard frequency set; the default EAM FM radios report it from the start, so the
+  page shows it as `GRD OFF`.
+- **Transmitting.** `RadioSendingState.SendingOn` keeps the last radio used after push-to-talk is
+  released (and is `0` before the first transmission), so a radio is transmitting only while
+  `IsSending` is true. `RadioInfo.ptt` is DCS's push-to-talk field and stays `false` in EAM; the
+  extension ignores it.
+- **Field set.** Every field above is present, including `freqMin`, `freqMax` and `freqMode`,
+  which SRS marks `[JsonDCSIgnoreSerialization]` but its resolver doesn't strip.
+
+The captures are in `docs/samples/`: `eam-idle.json` (connected, nobody talking) and `eam-tx.json`
+(transmitting on radio 1).
 
 ### Commands in: UDP 9040
 
@@ -143,17 +157,17 @@ One full page on the 900×900 canvas used by the other extension pages.
   (`◄ <SentBy>` white) while receiving, `► YOU` (green) while transmitting, or a dim `—`. The
   radios assigned to COM 1 and COM 2 carry that head's border color. Tapping a button assigns
   that radio to the selected COM.
-- **States:** `TX` when `RadioSendingState.SendingOn` is that radio and `IsSending` is true; `RX`
-  when that radio's `IsReceiving` is true (`IsSecondary` marks receiving on guard). Guard is on
-  when `secFreq` is above 0; whether EAM restores the guard frequency after `secFreq` = 1 is checked
-  in the capture step.
+- **States:** `TX` when `IsSending` is true and `SendingOn` is that radio; `RX` when that radio's
+  receiving entry is non-null and `IsReceiving` is true (`IsSecondary` marks receiving on guard).
+  Guard shows as `GRD <freq>` when `secFreq` is above 1, otherwise `GRD OFF`.
 - **Speaker hold:** SRS clears `IsReceiving` 350 ms after the last voice packet, so the page keeps
   a speaker's name on screen for 2 s after it clears, to stop it flickering between words.
 - **Page-side state:** SRS has one selected radio and no standby frequencies. The standby
   frequencies and the COM 2 assignment live in the page; swap sends `FREQUENCY_SET` with the
   standby value and keeps the old active value as the new standby.
 
-Step size for `▲`/`▼` follows the modulation: 25 kHz for AM/FM.
+Step size for `▲`/`▼` follows the modulation: 25 kHz for AM/FM. Stepped and typed frequencies are
+clamped to the radio's `freqMin`–`freqMax`, and only radios with `freqMode` 1 accept them.
 
 Colors follow NOXMFD's theme tokens: green for live values, amber for the selection and for
 pending values (standby), red for alerts, white for key legends.
@@ -162,9 +176,10 @@ pending values (standby), red for alerts, white for key legends.
 
 ### Phase 1
 
-1. **Capture.** With SRS in EAM, dump one 7082 packet to `docs/samples/` (a few lines of Python
-   binding the port) and confirm the field table above. Capture again while transmitting and while
-   receiving.
+1. **Capture.** With SRS in EAM, dump 7082 packets to `docs/samples/` (a few lines of Python
+   binding the port). Idle and transmitting are captured. Still to capture: receiving, with a
+   second client talking on the same frequency, which also confirms `SentBy`, `IsSecondary` and
+   whether `TunedClients` excludes the local client.
 2. **Plugin skeleton.** Registration, listener thread, stale detection, slice publishing, config
    entries, embedded page assets.
 3. **Page.** Header, band scope, both COM heads showing their active frequencies and states, the
