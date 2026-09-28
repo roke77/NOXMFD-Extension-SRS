@@ -5,8 +5,8 @@
 Phase 1 is released as 0.1.0 and checked in the game, except receiving (step 4). Phase 2's controls
 are released as 0.2.0, checked in the preview; their in-game check (Phase 2 step 3), together with
 receiving, is next. The compact layout, the PTT/MON heads, mute and the portrait canvas (from a
-tester's feedback) are released as 0.3.0. Server preset names are built and checked in the game
-against a local SRS server, not yet released. The
+tester's feedback) are released as 0.3.0. Server preset names are released as 0.4.0, checked in the
+game against a local SRS server. The
 project runs in two phases:
 
 - **Phase 1 — read-only SRS page.** An EXT page that shows every SRS radio: frequency,
