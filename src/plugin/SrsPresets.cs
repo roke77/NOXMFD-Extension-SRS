@@ -42,6 +42,8 @@ namespace SrsModule
 
             string? server = ReadLastServer();
             if (server == null || server == _fetchedFor) return;
+            // Another server: its names aren't known yet, and the last server's don't apply.
+            _raw = null;
             if (!SrsPresetSync.TryParseServer(server, out string host, out int port))
             {
                 Plugin.Log?.LogWarning($"[SRS] presets: can't read server address \"{server}\" from {_globalCfg}.");
