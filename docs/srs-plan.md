@@ -8,8 +8,7 @@ receiving, is next. The project runs in two phases:
 
 - **Phase 1 — read-only SRS page.** An EXT page that shows every SRS radio: frequency,
   modulation, name, how many players are tuned, and who is transmitting or receiving.
-- **Phase 2 — radio controls.** Select a radio, change frequency or channel, and toggle guard from
-  the page.
+- **Phase 2 — radio controls.** Select a radio and change its frequency or volume from the page.
 
 Neither phase needs a NOXMFD core change: the page uses extension API sections 1–4 (page serving,
 telemetry slice, commands, EXT navigation; see NOXMFD's `docs/extensions-api.md`). This plan was
@@ -52,7 +51,7 @@ The packet is a serialized `CombinedRadioState`:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `RadioInfo.radios[]` | `DCSRadio[11]` | Index 0 is intercom, 1–10 are radios. Per radio: `name`, `freq` (Hz), `freqMin`/`freqMax` (Hz, the tuning range), `freqMode` (`1` = tunable from the overlay), `modulation`, `secFreq` (guard, see below), `channel` (−1 = none), `volume`, `enc`, `encKey`, `rxOnly`, `retransmit`, `simul` |
+| `RadioInfo.radios[]` | `DCSRadio[11]` | Index 0 is intercom, 1–10 are radios. Per radio: `name`, `freq` (Hz), `freqMin`/`freqMax` (Hz, the tuning range), `freqMode` (`1` = tunable from the overlay), `modulation`, `secFreq` (guard), `channel` (−1 = none), `volume`, `enc`, `encKey`, `rxOnly`, `retransmit`, `simul` |
 | `RadioInfo.selected` | short | Selected radio index |
 | `RadioInfo.name` | string | The player's EAM name |
 | `RadioInfo.unit`, `unitId` | string, uint | `"EAM"` in External AWACS Mode |
@@ -67,9 +66,6 @@ page goes by `modulation`, not `name`.
 
 The captures pin these rules:
 
-- **Guard (`secFreq`).** Above 1: guard is on at that frequency (Hz). `0`: guard is off. `1`: guard
-  is on with no guard frequency set; the default EAM FM radios report it from the start, so the
-  page shows it as `GRD OFF`.
 - **Transmitting.** `RadioSendingState.SendingOn` keeps the last radio used after push-to-talk is
   released (and is `0` before the first transmission), so a radio is transmitting only while
   `IsSending` is true. `RadioInfo.ptt` is DCS's push-to-talk field and stays `false` in EAM; the
@@ -122,40 +118,52 @@ page ──POST /ext/srs/command──► handler (main thread) ──validate�
   Forwarding the packet as-is avoids the game's `JsonUtility`, which can't fill nested objects
   under Mono, and keeps the plugin independent of SRS field changes; the page does the parsing.
 - **Commands** (`SrsCommands.cs`, `SrsCommandMap.cs`). The page posts one flat envelope per
-  action: `{"cmd":"select"|"guard","radio":n}`, `{"cmd":"freq","radio":n,"mhz":305.25}` or
+  action: `{"cmd":"select","radio":n}`, `{"cmd":"freq","radio":n,"mhz":305.25}` or
   `{"cmd":"volume","radio":n,"vol":0.5}`. The handler checks the command against that allow-list,
   `radio` against 1–10 and numbers for range and finiteness, maps it to SRS's schema, and sends one
   datagram to `127.0.0.1:9040`. Nothing else reaches SRS.
 - **Config** (BepInEx `.cfg`): state port (default 7082) and command port (default 9040), matching
   SRS's own settings.
 - **Page** (`src/web/`): `srs.html`, `srs.css`, `srs.js`, plus a pure `srs-format.js` (the packet
-  rules, speaker hold, COM 2 default and scope geometry) with a `node` test, as in the other
+  rules, speaker hold, MON default and scope geometry) with a `node` test, as in the other
   extensions. Reuses NOXMFD's `/assets/shared/theme.css`, `font.css` and `telemetry-source.js`.
 
 ## Page design
 
-The page uses the **AE2 "dual heads with band scope"** design: a band scope on top, two radio heads
-(COM 1 and COM 2) with an active and a standby frequency each, and a button per radio at the bottom.
-One full page on the 900×900 canvas used by the other extension pages.
+The page has two layouts, picked with a `COMPACT` / `DUAL BAND` switch top right: NOXMFD's AKF and
+TGT density switch, whose knob slides to the active layout and lights its label. `COMPACT` is the
+default; the choice is remembered in the browser. Each is drawn on the 900×900 canvas used by the
+other extension pages, or, in a pane at least 1.2× taller than wide where it draws bigger, on a
+640-wide portrait canvas as tall as the pane (AE3 on the design canvas). In portrait the head
+readouts shrink to fit, the radio buttons go to two columns, and the extra height goes to the radio
+rows or buttons.
+
+- **Compact:** the selected radio's head (the same head as PTT below, titled `SELECTED`), then one
+  row per radio: TX/RX lamp, `R<n>`, frequency, the speaker (`◄ <SentBy>`) or `► YOU`, players
+  tuned, and a `MUTE` button. Tapping a row selects that radio (`ACTIVE_RADIO`). `MUTE` sets the
+  radio's volume to 0 and shows `MUTED` in red; tapping it again restores the volume it had.
+- **Dual band:** the **AE2 "dual heads with band scope"** design: a band scope on top, two radio
+  heads (PTT and MON) with an active and a standby frequency each, and a button per radio at
+  the bottom. The rest of this section describes it.
 
 ![SRS page, AE2 design](images/srs-page-mockup-ae2-dual-heads-scope.png)
 
-- **Header:** `SRS` top left in NOXMFD green at the TGT page's title size (22 px); on the right, in
+- **Header:** `SRS` top left in NOXMFD green at the TGT page's title size (22 px); beside it, in
   dim green, the connection state (`●` green when connected; `NO SRS DATA` red when no packet has
-  arrived for 1 s), `EAM`, and `ClientCountConnected`.
-- **Band scope:** one scope showing COM 1's band: UHF AM 225–400 MHz, VHF AM 118–137 MHz, or VHF FM
-  30–88 MHz. COM 2's cursors appear only when COM 2 is on the same band. Each frequency in use is a bar whose height is its
+  arrived for 1 s), `EAM`, and `ClientCountConnected`; the layout toggle on the right.
+- **Band scope:** one scope showing PTT's band: UHF AM 225–400 MHz, VHF AM 118–137 MHz, or VHF FM
+  30–88 MHz. MON's cursors appear only when MON is on the same band. Each frequency in use is a bar whose height is its
   `TunedClients` count; a bar glows while a radio tuned to it is receiving, with the speaker's name
-  beside it. Each COM head has two cursors: solid on its active frequency and dashed on its standby
-  frequency, amber for COM 1 and green for COM 2. Guard frequencies are labelled. A legend in the
+  beside it. Each head has two cursors: solid on its active frequency and dashed on its standby
+  frequency, amber for PTT and green for MON. A legend in the
   scope header names the colors and line styles.
-- **COM heads:** COM 1 always shows SRS's `selected` radio, the one push-to-talk transmits on, so
-  assigning a radio to COM 1 sends `ACTIVE_RADIO`. COM 2 is a monitor slot the page remembers,
-  defaulting to the lowest-numbered other radio whose modulation isn't DISABLED or INTERCOM. Two
-  stacked panels, COM 1 with the amber selection border. Each shows the assigned
-  radio's number and `name`, a `TX` (filled) or `RX` (outlined) badge, the **active** frequency
+- **Radio heads:** PTT always shows SRS's `selected` radio, the one push-to-talk transmits on. MON
+  (monitor) is a second radio to listen to, which the page remembers, defaulting to the
+  lowest-numbered other radio whose modulation isn't DISABLED or INTERCOM; its `◄`/`►` buttons
+  step to the previous or next usable radio, skipping PTT's. Two stacked panels, PTT with the amber
+  border. Each shows the radio's number and `name`, a `TX` (filled) or `RX` (outlined) badge, the **active** frequency
   (large, white), a swap button, the **standby** frequency (amber), `▲`/`▼` to step the standby
-  frequency, and a status line with modulation, tuned count, guard (`GRD <freq>` or `GRD OFF`),
+  frequency, and a status line with modulation, tuned count,
   and volume or the current speaker.
 - **Keypad entry:** each standby frequency is a button with NOXMFD's keypad glyph beside the value
   (the same glyph and behavior as the NOAutopilot page); tapping it opens the keypad overlay. It's
@@ -164,15 +172,14 @@ One full page on the 900×900 canvas used by the other extension pages.
 - **Radio buttons:** R1–R10 in a 5×2 grid, one per radio whose modulation isn't DISABLED. Line one:
   a TX/RX lamp, `R<n>`, and the frequency in MHz to three decimals. Line two: the speaker
   (`◄ <SentBy>` white) while receiving, `► YOU` (green) while transmitting, or a dim `—`. The
-  radios assigned to COM 1 and COM 2 carry that head's border color. Tapping a button assigns
-  that radio to the selected COM.
+  radios on PTT and MON carry that head's border color. Tapping a button makes that radio PTT
+  (`ACTIVE_RADIO`).
 - **States:** `TX` when `IsSending` is true and `SendingOn` is that radio; `RX` when that radio's
-  receiving entry is non-null and `IsReceiving` is true (`IsSecondary` marks receiving on guard).
-  Guard shows as `GRD <freq>` when `secFreq` is above 1, otherwise `GRD OFF`.
+  receiving entry is non-null and `IsReceiving` is true.
 - **Speaker hold:** SRS clears `IsReceiving` 350 ms after the last voice packet, so the page keeps
   a speaker's name on screen for 2 s after it clears, to stop it flickering between words.
 - **Page-side state:** SRS has one selected radio and no standby frequencies. The standby
-  frequencies and the COM 2 assignment live in the page (COM 1 follows SRS); swap sends `FREQUENCY_SET` with the
+  frequencies and the MON radio live in the page (PTT follows SRS); swap sends `FREQUENCY_SET` with the
   standby value and keeps the old active value as the new standby.
 
 Step size for `▲`/`▼` follows the modulation: 25 kHz for AM/FM. Stepped and typed frequencies are
@@ -180,14 +187,15 @@ clamped to the radio's `freqMin`–`freqMax`, and only radios with `freqMode` 1 
 
 Phase 2 controls:
 
-- **Selecting a COM:** tapping a COM head makes it the selected COM (amber border). Tapping an R
-  button assigns that radio to the selected COM; with COM 1 selected that sends `ACTIVE_RADIO`.
+- **Talking on a radio:** tapping an R button makes it PTT (`ACTIVE_RADIO`). If it was MON's
+  radio, MON goes back to its default.
+- **MON's radio:** MON's `◄`/`►` step through the usable radios, wrapping, skipping PTT's.
 - **Keypad:** the NOAutopilot page's keypad overlay, adapted for frequencies (digits, decimal
   point, CLR, CANCEL, ENTER), showing the radio's tuning range and rejecting entries outside it.
 - **Volume:** tapping a point on a head's VOL bar sets that volume (`SET_VOLUME`).
-- **Guard:** tapping a head's `GRD` text toggles guard (`TOGGLE_GUARD`).
+- **No guard control:** Nuclear Option has no use for guard, so the page doesn't show or toggle it.
 - **Remembered in the browser** (`localStorage`, per device): each radio's standby frequency and
-  the COM 2 assignment. COM 2 falls back to its default when its radio becomes unusable.
+  the MON radio. MON falls back to its default when its radio becomes unusable.
 
 Colors follow NOXMFD's theme tokens: green for live values, amber for the selection and for
 pending values (standby), red for alerts, white for key legends.
@@ -198,7 +206,7 @@ pending values (standby), red for alerts, white for key legends.
 
 1. **Capture.** With SRS in EAM, dump 7082 packets to `docs/samples/` (a few lines of Python
    binding the port). Idle and transmitting are captured. Still to capture: receiving, with a
-   second client talking on the same frequency, which also confirms `SentBy`, `IsSecondary` and
+   second client talking on the same frequency, which also confirms `SentBy` and
    whether `TunedClients` excludes the local client.
 2. **Plugin skeleton** (built). Registration, listener thread, stale detection, slice publishing,
    the state-port config entry, embedded page assets, and a placeholder page that lists the radios
@@ -212,24 +220,23 @@ pending values (standby), red for alerts, white for key legends.
    checked by `node src/web/srs-format.test.js` against `docs/samples/`. The preview's `busy`
    scenario reproduces the AE2 mockup's data.
 4. **Live check.** SRS connected to a server in EAM, the game running, the page open on a second
-   device. Checked in the game with SRS 2.4.1.0 on a local server: COM 1 follows the radio
-   selected in SRS's overlay and COM 2 takes the next usable radio; retuning moves the bars and
-   cursors; the scope switches between UHF AM, VHF AM and VHF FM with COM 1's radio; guard shows
-   `GRD OFF` for the FM radios; TX and `► YOU` show while push-to-talk is held and clear on
+   device. Checked in the game with SRS 2.4.1.0 on a local server: PTT follows the radio
+   selected in SRS's overlay and MON takes the next usable radio; retuning moves the bars and
+   cursors; the scope switches between UHF AM, VHF AM and VHF FM with PTT's radio; TX and `► YOU` show while push-to-talk is held and clear on
    release; closing SRS mid-mission shows `NO SRS DATA` and clears the radios, and reconnecting
    recovers the page. Parked until another player can join: receiving (speaker names, the speaker
-   hold, `IsSecondary` on guard, and `TunedClients` counts) with a second client.
+   hold and `TunedClients` counts) with a second client.
 
 ### Phase 2
 
 1. **Command handler and allow-list** (built). `SrsCommands.cs` parses the page's flat envelope
-   (`{"cmd","radio","mhz","vol"}`) and `SrsCommandMap.cs` maps `select`, `guard`, `freq` and
+   (`{"cmd","radio","mhz","vol"}`) and `SrsCommandMap.cs` maps `select`, `freq` and
    `volume` to SRS's datagrams, rejecting anything else, radio 0 or 11+, and non-finite or
    impossible values; `dotnet run --project tools/cmdcheck` checks it. The command port is a
    setting (default 9040).
-2. **Controls** (built): standby frequencies, swap, `▲`/`▼`, the keypad overlay, selecting a COM,
-   radio assignment, guard and volume. `srs-format.js` holds the stepping, entry checks, COM 2
-   pick and volume math, covered by `srs-format.test.js`. The page only rewrites a block when its
+2. **Controls** (built): standby frequencies, swap, `▲`/`▼`, the keypad overlay, choosing PTT and MON radios,
+   volume and mute. `srs-format.js` holds the frequency stepping, entry checks, MON default and
+   stepping, and volume math, covered by `srs-format.test.js`. The page only rewrites a block when its
    markup changes, so a 10 Hz refresh can't replace a button mid-tap. `tools/preview.py` answers
    commands: it simulates SRS on the mocks and forwards to the real SRS in `live` mode. Every
    control is checked in the preview.
@@ -260,5 +267,8 @@ pending values (standby), red for alerts, white for key legends.
 
 - Do players' servers push custom EAM radios (`AllowServerEAMRadioPreset`), and what are the radio
   names? This decides whether `name` alone is useful enough in Phase 1.
-- Are preset channel names needed? If so, the options are reading SRS's client preset files from
-  its install folder or leaving them out.
+- Preset channels: servers configure them, and SRS syncs them over its own server connection. The
+  state packet only carries each radio's preset index (`channel`, −1 = none), so the page can't
+  show preset names. SRS does step presets over UDP (`CHANNEL_UP` / `CHANNEL_DOWN`; EAM reports
+  `control` 0, the HOTAS mode those commands need). Is stepping presets without their names
+  useful?

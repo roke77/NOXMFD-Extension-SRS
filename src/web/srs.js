@@ -1,8 +1,10 @@
-// SRS page, AE2 design (docs/srs-plan.md, "Page design"). Renders the "srs" slice Plugin.cs
-// publishes into NOXMFD's telemetry frame (SRS's own state packet plus its age) and posts controls
-// to /ext/srs/command (SrsCommands.cs), which forwards them to SRS. COM 1 is SRS's selected radio;
-// COM 2 is the page's monitor slot. Standby frequencies exist only here: swap sends the standby as
-// the radio's new frequency. The band scope follows COM 1's band.
+// SRS page (docs/srs-plan.md, "Page design"). Renders the "srs" slice Plugin.cs publishes into
+// NOXMFD's telemetry frame (SRS's own state packet plus its age) and posts controls to
+// /ext/srs/command (SrsCommands.cs), which forwards them to SRS. Two layouts, picked with the
+// toggle top right: COMPACT (the selected radio's head and a row per radio) and DUAL BAND (AE2:
+// band scope, PTT = SRS's selected radio, MON = the page's monitor slot, radio buttons). In code
+// PTT and MON are com[1] and com[2].
+// Standby frequencies exist only here: swap sends the standby as the radio's new frequency.
 import { TelemetrySource } from '/assets/services/telemetry-source.js';
 
 const F = window.SrsFormat;
@@ -10,17 +12,30 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ── canvas fit ──────────────────────────────────────────────────────────────────────────────
-const STAGE = 900;
+// Two canvases, scaled to fit the pane: the 900×900 square, or a 640-wide portrait canvas as tall
+// as the pane (AE3 on the design canvas). Portrait is used in a pane at least 1.2× taller than
+// wide, when it also draws bigger than the square; its extra height goes to the radio rows. The
+// minimum heights are what each layout needs at 640 wide.
+const STAGE = 900, PORTRAIT_W = 640, PORTRAIT_MIN_H = { compact: 900, dual: 1160 };
 // The shell's vertical MAIN label sits on one side edge (either, depending on the pane), so both
 // sides keep the TGT page's inset: clamp(34px, 5vw, 48px).
 const sideInset = () => Math.min(48, Math.max(34, innerWidth * 0.05));
+let portrait = false;
 function fitStage() {
-  const s = Math.min(innerWidth - 2 * sideInset(), innerHeight) / STAGE;
-  $('stage').style.transform =
-    `translate(${(innerWidth - STAGE * s) / 2}px, ${(innerHeight - STAGE * s) / 2}px) scale(${s})`;
+  const w = innerWidth - 2 * sideInset(), h = innerHeight;
+  const square = Math.min(w, h) / STAGE;
+  const tall = Math.min(w / PORTRAIT_W, h / PORTRAIT_MIN_H[layout]);
+  const was = portrait;
+  portrait = h >= w * 1.2 && tall > square;
+  const s = portrait ? tall : square;
+  const W = portrait ? PORTRAIT_W : STAGE, H = portrait ? h / s : STAGE;
+  const st = $('stage');
+  st.classList.toggle('portrait', portrait);
+  st.style.width = W + 'px';
+  st.style.height = H + 'px';
+  st.style.transform = `translate(${(innerWidth - W * s) / 2}px, ${(innerHeight - H * s) / 2}px) scale(${s})`;
+  if (portrait !== was) rerender(); // the scope's geometry follows the canvas width
 }
-addEventListener('resize', fitStage);
-fitStage();
 
 // ── page state ──────────────────────────────────────────────────────────────────────────────
 // Remembered per browser (docs/srs-plan.md, "Phase 2 controls"). Storage can throw (private mode,
@@ -32,8 +47,11 @@ const store = {
 // radio index → Hz. Only finite positive numbers are kept: storage is outside the page's control.
 const standby = Object.fromEntries(Object.entries(store.get('standby', {}))
   .filter(([, hz]) => Number.isFinite(hz) && hz > 0));
-let com2Stored = store.get('com2', null);   // radio index the player put on COM 2
-let selCom = 1;                              // the COM an R button tap assigns to
+let com2Stored = store.get('com2', null);   // radio index the player put on MON
+let layout = store.get('layout', 'compact') === 'dual' ? 'dual' : 'compact';
+// radio → volume before MUTE, so unmuting restores it. ponytail: page memory only; after a reload
+// unmute restores 100%.
+const unmuted = {};
 const held = {};                             // speakers held after SRS stops reporting them (F.speaker)
 let lastState = null, lastV = null;
 
@@ -56,11 +74,12 @@ function setStandby(i, hz) {
 }
 
 // ── band scope ──────────────────────────────────────────────────────────────────────────────
-const X0 = 20, X1 = 824, BASE = 120, BAR_MAX = 84, PX_PER_CLIENT = 6;
+const X0 = 20, BASE = 120, BAR_MAX = 84, PX_PER_CLIENT = 6;
+const scopeW = () => (portrait ? 568 : 844); // the scope's viewBox width on each canvas
 
 function scopeSvg(v) {
-  const band = v.band;
-  if (!band) return `<text class="sc-empty" x="422" y="70" text-anchor="middle">NO SCOPE FOR THIS RADIO</text>`;
+  const band = v.band, X1 = scopeW() - 20;
+  if (!band) return `<text class="sc-empty" x="${scopeW() / 2}" y="70" text-anchor="middle">NO SCOPE FOR THIS RADIO</text>`;
   const x = (hz) => F.scopeX(hz, band, X0, X1);
   // Labels near the right edge anchor to their end so they stay inside the scope. 14 clears the
   // cursor's 7 px half-width triangle with a gap.
@@ -72,20 +91,16 @@ function scopeSvg(v) {
     const a = hz === band.lo ? 'start' : hz + band.step > band.hi + 1 ? 'end' : 'middle';
     s += `<path class="sc-grid" d="M${px} 14V${BASE}"/><text class="sc-tick" x="${px}" y="140" text-anchor="${a}">${hz / 1e6}</text>`;
   }
-  for (const g of F.guards(v.radios, band)) {
-    const px = x(g);
-    s += `<path class="sc-grd" d="M${px} 14V${BASE}"/><text class="sc-grd-t" x="${px - 6}" y="${BASE - 6}" text-anchor="end">GRD</text>`;
-  }
   for (const b of F.scopeBars(v.radios, v.tuned, band, v.rx)) {
     const h = Math.max(3, Math.min(BAR_MAX, b.tuned * PX_PER_CLIENT));
     const px = x(b.hz);
     s += `<rect class="sc-bar${b.rx ? ' rx' : ''}" x="${px - 5}" y="${BASE - h}" width="10" height="${h}"/>`;
     if (b.rx) s += `<text class="sc-who" x="${px + off(px) * 1.5}" y="${Math.min(BASE - 8, BASE - h + 14)}" text-anchor="${anchor(px)}">◄ ${esc(b.rx.who)}</text>`;
   }
-  // COM cursors: COM 2 first so COM 1 draws on top when they share a frequency. Each label has its
+  // Head cursors: MON first so PTT draws on top when they share a frequency. Each label has its
   // own row (active: 16 / 32, standby: 48 / 64), so a standby close to an active frequency can't
-  // overprint it. Standby cursors are dashed and labelled "SBY"; the color says which COM.
-  [['c2', v.com[2], 32, 64], ['c1', v.com[1], 16, 48]].forEach(([cls, i, y, sbyY]) => {
+  // overprint it. Standby cursors are dashed and labelled "SBY"; the color says which head.
+  [['c2', 'MON', v.com[2], 32, 64], ['c1', 'PTT', v.com[1], 16, 48]].forEach(([cls, label, i, y, sbyY]) => {
     const r = v.radios[i];
     if (i < 0 || !r || F.bandFor(r) !== band) return;
     const sby = standby[i];
@@ -95,7 +110,7 @@ function scopeSvg(v) {
     }
     const px = x(r.freq);
     s += `<path class="sc-cur ${cls}" d="M${px} 18V${BASE}"/><path class="sc-tri ${cls}" d="M${px - 7} 8h14l-7 10z"/>` +
-         `<text class="sc-lbl ${cls}" x="${px + off(px)}" y="${y}" text-anchor="${anchor(px)}">${cls.toUpperCase()} ${F.freq(r.freq)} · ${v.tuned[i] || 0}</text>`;
+         `<text class="sc-lbl ${cls}" x="${px + off(px)}" y="${y}" text-anchor="${anchor(px)}">${label} ${F.freq(r.freq)} · ${v.tuned[i] || 0}</text>`;
   });
   return s;
 }
@@ -104,7 +119,8 @@ function scopeSvg(v) {
 const KP = '<svg class="kp-ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#kp-glyph"/></svg>';
 const SWAP = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h14l-3-3M20 16H6l3 3"/></svg>';
 
-function comHtml(n, v) {
+// n = 1 is SRS's selected radio (PTT, or SELECTED in compact), n = 2 is MON with its ◄ / ► picker.
+function comHtml(n, v, title) {
   const i = v ? v.com[n] : -1;
   const r = v && i > 0 ? v.radios[i] : null;
   const tx = r && F.isTx(v.send, i), rx = r && v.rx[i];
@@ -112,19 +128,20 @@ function comHtml(n, v) {
   const disabled = tun ? '' : ' disabled';
   const badge = tx ? '<span class="badge tx">TX</span>' : rx ? '<span class="badge rx">RX</span>' : '<span class="badge"></span>';
   const vol = r ? Math.round((r.volume ?? 0) * 100) : 0;
-  const grd = r && tun ? `<button class="grd" data-act="grd" data-com="${n}" aria-label="Toggle guard on COM ${n}">${F.guard(r.secFreq)}</button>`
-            : r ? `<span>${F.guard(r.secFreq)}</span>` : '';
   const volCtl = r && r.volMode === 1
-    ? `<button class="vol" data-act="vol" data-com="${n}" aria-label="COM ${n} volume ${vol}%, tap to set"><div><div style="width:${vol}%"></div></div></button>`
+    ? `<button class="vol" data-act="vol" data-com="${n}" aria-label="${title} volume ${vol}%, tap to set"><div><div style="width:${vol}%"></div></div></button>`
     : `<span class="vol"><div><div style="width:${vol}%"></div></div></span>`;
-  return `<div class="com-top"><span>COM ${n} · ${r ? `R${i} ${esc(r.name)}` : F.DASH}</span>${badge}</div>
+  const name = r ? `R${i} ${esc(r.name)}` : F.DASH;
+  const pick = (dir, glyph, what) => `<button class="mon-step" data-act="mon" data-dir="${dir}" aria-label="${what} radio on MON"${v ? '' : ' disabled'}>${glyph}</button>`;
+  const label = n === 2 ? `${title} · ${pick(-1, '◄', 'Previous')}${name}${pick(1, '►', 'Next')}` : `${title} · ${name}`;
+  return `<div class="com-top"><span class="com-name">${label}</span>${badge}</div>
     <div class="com-mid">
       <div class="act"><span class="lbl">ACTIVE</span><span class="act-f">${r ? F.freq(r.freq) : F.DASH}</span></div>
-      <button class="swap" data-act="swap" data-com="${n}" aria-label="Swap COM ${n} active and standby"${tun && sby ? '' : ' disabled'}>${SWAP}</button>
-      <button class="sby" data-act="sby" data-com="${n}" aria-label="COM ${n} standby frequency, tap to type"${disabled}><span class="lbl">STANDBY</span><span class="sby-v">${sby ? F.freq(sby) : F.DASH}${KP}</span></button>
-      <div class="steps"><button data-act="up" data-com="${n}" aria-label="COM ${n} standby up"${disabled}>▲</button><button data-act="down" data-com="${n}" aria-label="COM ${n} standby down"${disabled}>▼</button></div>
+      <button class="swap" data-act="swap" data-com="${n}" aria-label="Swap ${title} active and standby"${tun && sby ? '' : ' disabled'}>${SWAP}</button>
+      <button class="sby" data-act="sby" data-com="${n}" aria-label="${title} standby frequency, tap to type"${disabled}><span class="lbl">STANDBY</span><span class="sby-v">${sby ? F.freq(sby) : F.DASH}${KP}</span></button>
+      <div class="steps"><button data-act="up" data-com="${n}" aria-label="${title} standby up"${disabled}>▲</button><button data-act="down" data-com="${n}" aria-label="${title} standby down"${disabled}>▼</button></div>
     </div>
-    <div class="com-foot">${r ? `<span>${F.modName(r.modulation)} · ${v.tuned[i] || 0} TUNED ·</span>${grd}` : ''}
+    <div class="com-foot">${r ? `<span>${F.modName(r.modulation)} · ${v.tuned[i] || 0} TUNED</span>` : ''}
       <span class="right">${rx ? `<span class="who">◄ ${esc(rx.who)}</span>` : ''}${r ? `<span>VOL</span>${volCtl}<span class="c2">${vol}</span>` : ''}</span></div>`;
 }
 
@@ -144,7 +161,27 @@ function radsHtml(v) {
     const who = tx ? '<span class="rad-who tx">► YOU</span>'
               : rx ? `<span class="rad-who rx">◄ ${esc(rx.who)}</span>`
               : `<span class="rad-who">${F.DASH}</span>`;
-    s += `<button class="rad${cls}" data-act="rad" data-r="${i}" aria-label="Assign R${i} to COM ${selCom}"><span class="rad-top"><span class="lamp ${lamp}"></span>R${i}<span class="f">${F.freq(r.freq)}</span></span>${who}</button>`;
+    s += `<button class="rad${cls}" data-act="rad" data-r="${i}" aria-label="Talk on R${i}"><span class="rad-top"><span class="lamp ${lamp}"></span>R${i}<span class="f">${F.freq(r.freq)}</span></span>${who}</button>`;
+  }
+  return s;
+}
+
+// ── compact rows ────────────────────────────────────────────────────────────────────────────
+function rowsHtml(v) {
+  let s = '';
+  for (let i = 1; i <= 10; i++) {
+    const r = v && v.radios[i];
+    if (!F.usable(r)) {
+      s += `<div class="row off"><button class="row-pick" disabled><span class="lamp"></span><span class="rn">R${i}</span><span class="f">${v ? 'OFF' : F.DASH}</span></button><button class="mute" disabled>MUTE</button></div>`;
+      continue;
+    }
+    const tx = F.isTx(v.send, i), rx = v.rx[i], muted = !(r.volume > 0);
+    const lamp = tx ? 'tx' : rx ? 'rx' : '';
+    const who = tx ? '<span class="rad-who tx">► YOU</span>'
+              : rx ? `<span class="rad-who rx">◄ ${esc(rx.who)}</span>`
+              : `<span class="rad-who">${F.DASH}</span>`;
+    const mute = `<button class="mute${muted ? ' on' : ''}" data-act="mute" data-r="${i}" aria-label="${muted ? 'Unmute' : 'Mute'} R${i}"${r.volMode === 1 ? '' : ' disabled'}>${muted ? 'MUTED' : 'MUTE'}</button>`;
+    s += `<div class="row${i === v.com[1] ? ' c1' : ''}"><button class="row-pick" data-act="pick" data-r="${i}" aria-label="Select R${i}"><span class="lamp ${lamp}"></span><span class="rn">R${i}</span><span class="f">${F.freq(r.freq)}</span>${who}<span class="tun">${v.tuned[i] || 0} TUNED</span></button>${mute}</div>`;
   }
   return s;
 }
@@ -174,13 +211,21 @@ function render(v, status, bad) {
   setHtml('status', esc(status));
   $('status').className = 'status' + (bad ? ' bad' : '');
   setHtml('band', v ? v.band.label : F.DASH);
+  $('scope').setAttribute('viewBox', `0 0 ${scopeW()} 150`);
   setHtml('scope', v ? scopeSvg(v) : '');
-  setHtml('com1', comHtml(1, v));
-  setHtml('com2', comHtml(2, v));
-  $('com1').classList.toggle('sel', selCom === 1);
-  $('com2').classList.toggle('sel', selCom === 2);
+  setHtml('com1', comHtml(1, v, 'PTT'));
+  setHtml('com2', comHtml(2, v, 'MON'));
   setHtml('rads', radsHtml(v));
+  setHtml('cpt', comHtml(1, v, 'SELECTED'));
+  setHtml('rows', rowsHtml(v));
   if (!v) closeKeypad();
+}
+
+function showLayout() {
+  $('compact').hidden = layout !== 'compact';
+  $('dual').hidden = layout !== 'dual';
+  $('layout-tog').classList.toggle('dual', layout === 'dual');
+  $('layout-tog').setAttribute('aria-checked', String(layout === 'dual'));
 }
 
 function statusText(s) {
@@ -221,24 +266,36 @@ const ACTIONS = {
   up(n) { step(n, 1); },
   down(n) { step(n, -1); },
   sby(n) { openKeypad(n); },
-  grd(n) { const c = comRadio(n); if (c) post({ cmd: 'guard', radio: c.i }); },
   vol(n, e, el) {
     const i = lastV ? lastV.com[n] : -1;
     if (i < 1) return;
     const box = el.getBoundingClientRect(); // screen px, already scaled like the stage
     post({ cmd: 'volume', radio: i, vol: F.volAt(e.clientX - box.left, box.width) });
   },
+  pick(_, e, el) { post({ cmd: 'select', radio: Number(el.dataset.r) }); },
+  mute(_, e, el) {
+    const i = Number(el.dataset.r), r = lastV && lastV.radios[i];
+    if (!r) return;
+    if (r.volume > 0) { unmuted[i] = r.volume; post({ cmd: 'volume', radio: i, vol: 0 }); }
+    else post({ cmd: 'volume', radio: i, vol: unmuted[i] || 1 });
+  },
+  layout() {
+    layout = layout === 'dual' ? 'compact' : 'dual';
+    store.set('layout', layout);
+    showLayout();
+    fitStage();
+  },
+  // Tapping a radio makes it PTT. MON's radio moving to PTT drops the MON pick, so MON takes its
+  // default instead of jumping back when PTT moves on.
   rad(_, e, el) {
     const i = Number(el.dataset.r);
+    post({ cmd: 'select', radio: i });
+    if (com2Stored === i) { com2Stored = null; store.set('com2', null); }
+  },
+  mon(_, e, el) {
     if (!lastV) return;
-    if (selCom === 1) {
-      post({ cmd: 'select', radio: i });
-      if (com2Stored === i) { com2Stored = null; store.set('com2', null); }
-    } else if (i !== lastV.com[1]) {
-      com2Stored = i;
-      store.set('com2', i);
-    }
-    rerender();
+    com2Stored = F.monStep(lastV.radios, lastV.com[1], lastV.com[2], Number(el.dataset.dir));
+    store.set('com2', com2Stored);
   },
 };
 
@@ -251,11 +308,10 @@ function step(n, dir) {
 
 $('stage').addEventListener('click', (e) => {
   if (e.target.closest('#keypad')) return;
-  const head = e.target.closest('.com');
-  if (head) selCom = head.id === 'com2' ? 2 : 1;
   const el = e.target.closest('[data-act]');
-  if (el && !el.disabled) ACTIONS[el.dataset.act](Number(el.dataset.com), e, el);
-  if (head || el) rerender();
+  if (!el || el.disabled) return;
+  ACTIONS[el.dataset.act](Number(el.dataset.com), e, el);
+  rerender();
 });
 
 // ── keypad ──────────────────────────────────────────────────────────────────────────────────
@@ -272,7 +328,7 @@ function openKeypad(n) {
   if (!c) return;
   kpCom = n;
   kpText = '';
-  $('kp-title').textContent = `COM ${n} · R${c.i} STANDBY MHZ`;
+  $('kp-title').textContent = `R${c.i} STANDBY MHZ`;
   $('kp-range').textContent = `${F.freq(c.r.freqMin)} – ${F.freq(c.r.freqMax)}`;
   kpShow('');
   $('keypad').hidden = false;
@@ -316,6 +372,9 @@ function onNoMission() {
   render(null, 'WAITING FOR MISSION', false);
 }
 
+addEventListener('resize', fitStage);
+fitStage();
+showLayout();
 render(null, 'WAITING FOR MISSION', false);
 const source = new TelemetrySource({ onFrame, onNoMission });
 source.connect();

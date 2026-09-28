@@ -7,7 +7,7 @@ Serves /ext/srs/* from this repo's src/web, /assets/shared|services/* from a NOX
 Plugin.BuildSlice. GET /scenario?s=<name> switches what the stream sends:
   idle, tx          the captured packets in docs/samples/
   rx                idle with R1 receiving VIPER 1-1
-  busy              AE2's mockup data: COM 1 on R2 transmitting, R1 receiving, players tuned
+  busy              AE2's mockup data: PTT on R2 transmitting, R1 receiving, players tuned
   live              real SRS packets from UDP 127.0.0.1:7082 (don't run the game at the same time)
   unknown           a packet shape the page doesn't recognise
   no-data, port-busy, stale, nomission
@@ -32,7 +32,7 @@ RX["RadioReceivingState"][1] = {"LastReceivedAt": 0, "IsSecondary": False, "IsSi
 RX["TunedClients"][1] = 1
 RX["ClientCountConnected"] = 2
 
-# AE2's mockup data: COM 1 on R2 transmitting at 305.250, R1 hearing VIPER 1-1 with 14 tuned.
+# AE2's mockup data: PTT on R2 transmitting at 305.250, R1 hearing VIPER 1-1 with 14 tuned.
 BUSY = copy.deepcopy(RX)
 BUSY["RadioInfo"]["selected"] = 2
 for i, hz in ((2, 305.25e6), (4, 264.5e6), (6, 131e6)):
@@ -47,7 +47,7 @@ MOCKS = {"idle": SAMPLES["idle"], "tx": SAMPLES["tx"], "rx": RX, "busy": BUSY}
 commands = []  # every command body received, for GET /commands
 
 # SRS's UDPCommandType ids, as SrsCommandMap.cs sends them.
-SRS_IDS = {"select": 1, "guard": 2, "volume": 5, "freq": 12}
+SRS_IDS = {"select": 1, "volume": 5, "freq": 12}
 
 
 def to_srs(c):
@@ -73,9 +73,6 @@ def simulate(d):
     if d["Command"] == 1: info["selected"] = d["RadioId"]
     elif d["Command"] == 12: r["freq"] = min(r["freqMax"], max(r["freqMin"], round(d["Frequency"] * 1e6)))
     elif d["Command"] == 5: r["volume"] = d["Volume"]
-    elif d["Command"] == 2:
-        if r["secFreq"] > 1: r["_grd"], r["secFreq"] = r["secFreq"], 0
-        else: r["secFreq"] = r.get("_grd", 243e6)
 
 
 def listen_live():

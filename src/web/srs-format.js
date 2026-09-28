@@ -1,5 +1,5 @@
 // Pure helpers for the SRS page: SRS's packet rules (docs/srs-plan.md, "State out"), radio
-// states, the COM 2 default, and band-scope geometry. A classic script (not a module) so
+// states, the MON default, and band-scope geometry. A classic script (not a module) so
 // srs-format.test.js can require() it in plain node; the page reads it as window.SrsFormat.
 (function (root) {
   const DASH = '—';
@@ -18,13 +18,11 @@
 
   const freq = (hz) => (fin(hz) && hz > 0 ? (hz / 1e6).toFixed(3) : DASH);
   const modName = (m) => MOD[m] ?? DASH;
-  // secFreq: above 1 = guard on at that frequency; 0 = off; 1 = on with no frequency set (the
-  // default EAM FM radios report it from the start), which shows as off.
-  const guard = (secFreq) => (fin(secFreq) && secFreq > 1 ? 'GRD ' + freq(secFreq) : 'GRD OFF');
   // A radio the page offers: not DISABLED and not the intercom channel.
   const usable = (r) => !!r && r.modulation !== DISABLED && r.modulation !== INTERCOM;
 
-  // COM 2 defaults to the lowest-numbered usable radio other than COM 1 (SRS's selected radio).
+  // MON (the dual-band layout's second head) defaults to the lowest-numbered usable radio other
+  // than PTT (SRS's selected radio).
   function com2Default(radios, selected) {
     for (let i = 1; i < (radios || []).length; i++) if (i !== selected && usable(radios[i])) return i;
     return -1;
@@ -34,14 +32,14 @@
   const isTx = (send, i) => !!send && send.IsSending === true && send.SendingOn === i;
 
   // Who a radio is hearing, with the speaker held for HOLD_MS after SRS clears IsReceiving.
-  // `held` is the page's memory ({ [i]: { who, grd, until } }); it's updated in place.
+  // `held` is the page's memory ({ [i]: { who, until } }); it's updated in place.
   function speaker(entry, i, now, held) {
     if (entry && entry.IsReceiving) {
-      held[i] = { who: entry.SentBy || DASH, grd: !!entry.IsSecondary, until: now + HOLD_MS };
-      return { who: held[i].who, grd: held[i].grd };
+      held[i] = { who: entry.SentBy || DASH, until: now + HOLD_MS };
+      return { who: held[i].who };
     }
     const h = held[i];
-    if (h && now < h.until) return { who: h.who, grd: h.grd };
+    if (h && now < h.until) return { who: h.who };
     delete held[i];
     return null;
   }
@@ -69,19 +67,9 @@
     return [...bars.values()].sort((a, b) => a.hz - b.hz);
   }
 
-  // Guard frequencies (secFreq above 1) of the band's radios, deduplicated.
-  function guards(radios, band) {
-    const out = new Set();
-    for (let i = 1; i < (radios || []).length; i++) {
-      const r = radios[i];
-      if (usable(r) && bandFor(r) === band && r.secFreq > 1) out.add(r.secFreq);
-    }
-    return [...out].sort((a, b) => a - b);
-  }
-
   // ── Phase 2 controls ──────────────────────────────────────────────────────────────────────
   const STEP_HZ = 25000; // 25 kHz, the AM/FM channel spacing
-  // SRS only applies frequency, guard and volume changes to radios its overlay controls.
+  // SRS only applies frequency and volume changes to radios its overlay controls.
   const tunable = (r) => usable(r) && r.freqMode === 1;
   const clampHz = (hz, r) => Math.min(r.freqMax, Math.max(r.freqMin, hz));
   // One ▲/▼ step from `hz` (the standby, or the active frequency when there's no standby yet),
@@ -102,18 +90,29 @@
     return null;
   }
 
-  // COM 2's radio: the player's pick while it's usable and isn't COM 1's, else the default.
+  // MON's radio: the player's pick while it's usable and isn't PTT's, else the default.
   function com2Pick(radios, selected, stored) {
     return Number.isInteger(stored) && stored !== selected && usable((radios || [])[stored])
       ? stored : com2Default(radios, selected);
   }
 
+  // MON's ◄ / ►: the next usable radio from `current` in `dir` (±1), wrapping past R10 / R1 and
+  // skipping PTT's radio. Stays on `current` when there's no other.
+  function monStep(radios, selected, current, dir) {
+    const n = (radios || []).length - 1; // radios 1..n
+    for (let k = 0, i = current; k < n; k++) {
+      i = ((i - 1 + dir + n) % n) + 1;
+      if (i !== selected && usable(radios[i])) return i;
+    }
+    return current;
+  }
+
   // A tap at `x` along a bar `width` wide → volume 0..1, in 5% steps.
   const volAt = (x, width) => Math.min(1, Math.max(0, Math.round((x / width) * 20) / 20));
 
-  const api = { DASH, MOD, BANDS, HOLD_MS, STEP_HZ, freq, modName, guard, usable, com2Default, isTx,
-    speaker, bandFor, scopeX, scopeBars, guards, tunable, clampHz, stepHz, parseMhz, entryError,
-    com2Pick, volAt };
+  const api = { DASH, MOD, BANDS, HOLD_MS, STEP_HZ, freq, modName, usable, com2Default, isTx,
+    speaker, bandFor, scopeX, scopeBars, tunable, clampHz, stepHz, parseMhz, entryError,
+    com2Pick, monStep, volAt };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.SrsFormat = api;
 })(this);

@@ -9,7 +9,7 @@ namespace SrsModule
     internal static class SrsCommandMap
     {
         // SRS's UDPInterfaceCommand.UDPCommandType ids.
-        private const int ActiveRadio = 1, ToggleGuard = 2, SetVolume = 5, FrequencySet = 12;
+        private const int ActiveRadio = 1, SetVolume = 5, FrequencySet = 12;
 
         internal static string? ToSrs(string? cmd, int radio, double mhz, double vol)
         {
@@ -17,7 +17,6 @@ namespace SrsModule
             switch (cmd)
             {
                 case "select": return Datagram(ActiveRadio, radio);
-                case "guard": return Datagram(ToggleGuard, radio);
                 // SRS clamps to the radio's own range; this only rejects values no radio could hold.
                 // The comparisons are false for NaN, so a missing value is rejected too.
                 case "freq":

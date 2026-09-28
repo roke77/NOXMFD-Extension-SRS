@@ -12,18 +12,13 @@ assert.strictEqual(F.freq(251000000), '251.000');
 assert.strictEqual(F.freq(30000000), '30.000');
 assert.strictEqual(F.freq(undefined), F.DASH);
 
-// Guard: above 1 is a frequency, 0 is off, and 1 (the EAM FM radios' default) also shows as off.
-assert.strictEqual(F.guard(radios[1].secFreq), 'GRD 243.000');
-assert.strictEqual(F.guard(radios[3].secFreq), 'GRD OFF');
-assert.strictEqual(F.guard(0), 'GRD OFF');
-
 // Radio 0 is named SATCOM but is the intercom; it's never offered.
 assert.strictEqual(radios[0].name, 'SATCOM');
 assert.strictEqual(F.usable(radios[0]), false);
 assert.strictEqual(F.usable(radios[1]), true);
 assert.strictEqual(F.usable({ ...radios[1], modulation: 3 }), false);
 
-// COM 2 defaults to the lowest usable radio that isn't SRS's selected one.
+// MON defaults to the lowest usable radio that isn't SRS's selected one.
 assert.strictEqual(F.com2Default(radios, 1), 2);
 assert.strictEqual(F.com2Default(radios, 2), 1);
 assert.strictEqual(F.com2Default([radios[0]], 1), -1);
@@ -36,9 +31,9 @@ assert.strictEqual(F.isTx({ IsSending: false, SendingOn: 1 }, 1), false);
 // Speaker hold: live while receiving, held for HOLD_MS after, then gone; null entries are idle.
 const held = {};
 assert.deepStrictEqual(F.speaker({ IsReceiving: true, SentBy: 'VIPER 1-1', IsSecondary: false }, 1, 1000, held),
-  { who: 'VIPER 1-1', grd: false });
+  { who: 'VIPER 1-1' });
 assert.deepStrictEqual(F.speaker({ IsReceiving: false, SentBy: 'VIPER 1-1' }, 1, 1000 + F.HOLD_MS - 1, held),
-  { who: 'VIPER 1-1', grd: false });
+  { who: 'VIPER 1-1' });
 assert.strictEqual(F.speaker(null, 1, 1000 + F.HOLD_MS, held), null);
 assert.strictEqual(held[1], undefined);
 assert.strictEqual(F.speaker(idle.RadioReceivingState[2], 2, 0, held), null);
@@ -60,8 +55,6 @@ assert.strictEqual(bars.length, 1);
 assert.strictEqual(bars[0].hz, 251e6);
 assert.strictEqual(bars[0].tuned, 3);
 assert.strictEqual(bars[0].rx.who, 'MAGIC 1-1');
-assert.deepStrictEqual(F.guards(radios, uhf), [243e6]);
-assert.deepStrictEqual(F.guards(radios, F.BANDS[2]), []);
 
 // ── Phase 2 controls ──
 const uhfR = radios[1]; // 1–400 MHz in the default EAM set
@@ -87,11 +80,18 @@ assert.strictEqual(F.entryError(null, uhfR), 'ENTER A FREQUENCY');
 assert.strictEqual(F.entryError(401, uhfR), 'MAX 400.000');
 assert.strictEqual(F.entryError(0.5, uhfR), 'MIN 1.000');
 
-// COM 2: the player's pick while valid, else the default; never COM 1's radio.
+// MON: the player's pick while valid, else the default; never PTT's radio.
 assert.strictEqual(F.com2Pick(radios, 1, 6), 6);
 assert.strictEqual(F.com2Pick(radios, 6, 6), 1);
 assert.strictEqual(F.com2Pick(radios, 1, 0), 2);
 assert.strictEqual(F.com2Pick(radios, 1, null), 2);
+
+// MON's ◄ / ►: step, skip PTT's radio, wrap both ways, stay put with nowhere to go.
+assert.strictEqual(F.monStep(radios, 1, 2, 1), 3);
+assert.strictEqual(F.monStep(radios, 3, 2, 1), 4);
+assert.strictEqual(F.monStep(radios, 1, 2, -1), 10);
+assert.strictEqual(F.monStep(radios, 10, 9, 1), 1);
+assert.strictEqual(F.monStep([radios[0], radios[1], radios[2]], 1, 2, 1), 2);
 
 // Volume taps snap to 5%.
 assert.strictEqual(F.volAt(0, 220), 0);

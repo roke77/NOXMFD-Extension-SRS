@@ -17,9 +17,11 @@ static class Program
     static int Main()
     {
         Expect(SrsCommandMap.ToSrs("select", 4, double.NaN, double.NaN), "{\"Command\":1,\"RadioId\":4}", "select");
-        Expect(SrsCommandMap.ToSrs("guard", 2, double.NaN, double.NaN), "{\"Command\":2,\"RadioId\":2}", "guard");
         Expect(SrsCommandMap.ToSrs("freq", 2, 305.25, double.NaN), "{\"Command\":12,\"RadioId\":2,\"Frequency\":305.25}", "freq");
         Expect(SrsCommandMap.ToSrs("volume", 1, double.NaN, 0.8), "{\"Command\":5,\"RadioId\":1,\"Volume\":0.8}", "volume");
+
+        // Guard isn't offered: Nuclear Option has no use for it.
+        Expect(SrsCommandMap.ToSrs("guard", 2, double.NaN, double.NaN), null, "guard");
 
         // Radio 0 is the intercom and 11+ doesn't exist; neither is a page target.
         Expect(SrsCommandMap.ToSrs("select", 0, double.NaN, double.NaN), null, "radio 0");

@@ -1,5 +1,5 @@
 /* SRS page, AE2 "dual heads with band scope" design (docs/srs-plan.md, "Page design"). NOXMFD's
-   theme tokens: green = live, amber = selected / COM 1 / pending, red = alert, white = key values. */
+   theme tokens: green = live, amber = selected / PTT / pending, red = alert, white = key values. */
 
 * { box-sizing: border-box; }
 
@@ -17,8 +17,8 @@ button {
   display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
 
-/* ponytail: laid out on AE2's fixed 900x900 canvas and scaled to fit the pane (srs.js fitStage), like
-   the NOAutopilot page; a very tall or wide pane letterboxes. A responsive reflow is the upgrade. */
+/* Laid out on a fixed canvas scaled to fit the pane (srs.js fitStage): the 900x900 square, or in a
+   tall pane the 640-wide .portrait canvas as tall as the pane. fitStage sets the size. */
 .stage {
   position: absolute; left: 0; top: 0;
   width: 900px; height: 900px;
@@ -39,10 +39,31 @@ button:disabled { cursor: default; opacity: 0.35; }
 .lbl { font-size: 12px; color: var(--no-green-dim); letter-spacing: 3px; }
 
 /* Header: the TGT page's title style. */
-.head { display: flex; justify-content: space-between; align-items: baseline; }
+.head { display: flex; align-items: center; gap: 16px; }
 .title { font-size: 22px; letter-spacing: 0.08em; }
 .status { font-size: 12px; color: var(--no-green-dim); }
 .status.bad { color: var(--no-red); }
+
+/* Layout toggle, top right: NOXMFD's AKF/TGT density switch (akf.css .akf-density-toggle), sized
+   for this canvas. The knob slides to the active layout and that label brightens. */
+.layout-tog { margin-left: auto; height: 36px; gap: 8px; font-size: 13px; letter-spacing: 0.08em; white-space: nowrap; }
+.lt-l, .lt-r { color: var(--no-green-dim); }
+.layout-tog:not(.dual) .lt-l, .layout-tog.dual .lt-r { color: var(--no-green); }
+.lt-sw {
+  position: relative; flex: 0 0 auto; width: 36px; height: 18px;
+  border: 1px solid var(--no-green-dark); border-radius: 9px; background: rgba(255, 255, 255, 0.04);
+}
+.lt-knob {
+  position: absolute; top: 1px; left: 1px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--no-green-dim); transition: transform 0.12s ease, background 0.12s ease;
+}
+.layout-tog.dual .lt-knob { transform: translateX(18px); background: var(--no-green); }
+.layout-tog:hover .lt-knob { background: var(--no-green); }
+.layout-tog:not(:disabled):active { background: none; }
+
+/* Each layout fills the stage below the header; its radio list takes any extra height. */
+.view { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+.view[hidden] { display: none; }
 
 /* Band scope */
 .scope {
@@ -57,8 +78,6 @@ button:disabled { cursor: default; opacity: 0.35; }
 .sc-bar { fill: var(--no-green-deep); }
 .sc-bar.rx { fill: var(--no-green); filter: drop-shadow(0 0 7px rgba(var(--no-green-rgb), 0.95)); }
 .sc-who { fill: var(--no-white); font-size: 14px; }
-.sc-grd { stroke: var(--no-gray); stroke-width: 1.5; stroke-dasharray: 2 4; }
-.sc-grd-t { fill: var(--no-white-dim); font-size: 12px; }
 .sc-cur { stroke-width: 2; }
 .sc-sby { stroke-width: 1.5; stroke-dasharray: 5 4; }
 .sc-cur.c1, .sc-tri.c1, .sc-lbl.c1 { stroke: var(--no-amber); fill: var(--no-amber); }
@@ -71,12 +90,12 @@ button:disabled { cursor: default; opacity: 0.35; }
   border: 1px solid var(--no-green-dark); border-radius: 6px;
   padding: 16px 22px; display: flex; flex-direction: column; gap: 12px;
 }
-/* The whole head is a tap target that selects that COM; its buttons do their own action too. */
-.com { cursor: pointer; }
 .com.sel { border: 2px solid var(--no-amber); }
 .com-top { display: flex; justify-content: space-between; align-items: center; font-size: 16px; letter-spacing: 3px; }
 .com.sel .com-top > span:first-child { color: var(--no-amber); }
 .com-top > span:first-child { color: var(--no-green); }
+.com-name { display: flex; align-items: center; gap: 10px; }
+.mon-step { width: 44px; height: 32px; border: 1px solid var(--no-white-dark); border-radius: 4px; color: var(--no-white); font-size: 14px; }
 .badge { font-size: 16px; letter-spacing: 3px; padding: 2px 12px; border-radius: 3px; min-height: 26px; }
 .badge.tx { background: var(--no-green); color: #000; }
 .badge.rx { border: 1px solid var(--no-green); }
@@ -91,8 +110,6 @@ button:disabled { cursor: default; opacity: 0.35; }
 .steps button { width: 64px; height: 40px; border: 1px solid var(--no-white-dark); border-radius: 4px; color: var(--no-white); font-size: 18px; }
 .com-foot { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--no-green-dim); min-height: 32px; }
 .com-foot .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-/* GRD: a bordered chip so it reads as tappable; plain text on radios SRS won't let us toggle. */
-.grd { height: 32px; padding: 0 10px; border: 1px solid var(--no-white-dark); border-radius: 4px; color: var(--no-green); letter-spacing: 1px; }
 .who { color: var(--no-white); font-size: 16px; }
 /* The VOL bar is a 32 px tall tap target around the thin visible bar. */
 .vol { display: block; width: 160px; height: 32px; padding: 12px 0; }
@@ -142,6 +159,36 @@ button:disabled { cursor: default; opacity: 0.35; }
 .rad-who { font-size: 13px; letter-spacing: 1px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--no-white-dark); }
 .rad-who.rx { color: var(--no-white); }
 .rad-who.tx { color: var(--no-green); }
-.lamp { width: 10px; height: 10px; border-radius: 50%; background: var(--no-green-dark); }
+/* Compact radio rows: tap the row to select the radio, MUTE sets its volume to 0 and back. */
+.rows { flex: 1; display: flex; flex-direction: column; gap: 6px; margin-top: -6px; }
+.row { flex: 1 0 50px; display: flex; gap: 6px; }
+.row-pick {
+  flex: 1; min-width: 0; justify-content: flex-start; gap: 14px; padding: 0 16px;
+  border: 1px solid var(--no-white-dark); border-radius: 4px; color: var(--no-white); font-size: 18px;
+}
+.row.c1 .row-pick { border: 2px solid var(--no-amber); color: var(--no-amber); }
+.row.off .row-pick { color: var(--no-white-dark); }
+.row-pick .rn { width: 44px; text-align: left; }
+.row-pick .f { width: 96px; text-align: left; color: var(--no-white); }
+.row.off .row-pick .f { color: var(--no-white-dark); }
+.row-pick .rad-who { flex: 1; max-width: none; text-align: left; font-size: 16px; }
+.row-pick .tun { font-size: 14px; color: var(--no-green-dim); }
+.mute { width: 110px; border: 1px solid var(--no-white-dark); border-radius: 4px; color: var(--no-white); font-size: 14px; letter-spacing: 2px; }
+.mute.on { border-color: var(--no-red); color: var(--no-red); }
+.lamp { flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--no-green-dark); }
 .lamp.tx { background: var(--no-green); }
 .lamp.rx { background: none; border: 2px solid var(--no-green); }
+
+/* Portrait canvas (640 wide, AE3): the heads' readouts shrink to fit the width, and the radio
+   buttons go to two columns that share the extra height. */
+.portrait { padding: 24px; }
+.portrait #scope { width: 100%; height: 150px; }
+.portrait .com { padding: 16px 18px; }
+.portrait .com-mid { gap: 12px; }
+.portrait .act-f { font-size: 52px; }
+.portrait .swap { flex-shrink: 0; width: 56px; height: 56px; }
+.portrait .sby-v { font-size: 34px; }
+.portrait .steps button { width: 52px; height: 44px; }
+.portrait .vol { width: 120px; }
+.portrait .rads { flex: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(64px, 1fr); }
+.portrait .rad { height: auto; }

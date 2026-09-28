@@ -35,17 +35,20 @@ local state broadcast, so it doesn't modify NOXMFD or SRS.
 
 ## Features
 
-- **Band scope** for COM 1's band (UHF AM, VHF AM or VHF FM): a bar for every frequency your radios
-  are on, as tall as the number of players tuned to it, with guard frequencies marked. A bar glows
+- **Two layouts**, switched with the switch top right. Both fit square panes and tall ones:
+  - **Compact** (the default): the selected radio's head, then a row per radio with its frequency,
+    who's talking, players tuned, and a MUTE button. Tap a row to select that radio.
+  - **Dual band**: the band scope and two radio heads below.
+- **Band scope** for PTT's band (UHF AM, VHF AM or VHF FM): a bar for every frequency your radios
+  are on, as tall as the number of players tuned to it. A bar glows
   while you're hearing someone on it, with their name beside it.
-- **Two radio heads.** COM 1 is the radio SRS transmits on (its selected radio); COM 2 shows the next
-  radio. Each shows the frequency, TX/RX, modulation, players tuned, guard, and the speaker or
+- **Two radio heads.** PTT is the radio SRS transmits on (its selected radio); MON is a second
+  radio you listen to, picked with its ◄ ► buttons. Each shows the frequency, TX/RX, modulation, players tuned, and the speaker or
   volume.
 - **Every radio at a glance:** R1–R10 with frequency and who's talking, `► YOU` while you transmit.
 - **Tune from the page.** Each head has a standby frequency: step it with ▲▼ or tap it to type one
-  on the keypad, then swap it in. Tap a head to select it, then tap a radio to put it on that COM
-  (COM 1 changes the radio SRS transmits on). Tap GRD to toggle guard, and tap the VOL bar to set
-  the volume. Standby frequencies and your COM 2 radio are remembered in the browser.
+  on the keypad, then swap it in. Tap a radio to talk on it (it becomes PTT). Tap the VOL bar to
+  set the volume. Standby frequencies and your MON radio are remembered in the browser.
 - Follows SRS live: select or retune a radio in SRS's overlay and the page follows.
 - When SRS isn't running, has stopped sending, or its port is taken, the page says so instead of
   showing stale radios.
