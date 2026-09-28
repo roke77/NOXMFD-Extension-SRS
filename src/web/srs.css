@@ -1,4 +1,4 @@
-/* SRS page, AE2 "dual heads with band scope" design (docs/srs-plan.md, "Page design"). NOXMFD's
+/* SRS page: the compact layout and the AE2 dual-band design (docs/srs-plan.md, "Page design"). NOXMFD's
    theme tokens: green = live, amber = selected / PTT / pending, red = alert, white = key values. */
 
 * { box-sizing: border-box; }
@@ -77,15 +77,16 @@ button:disabled { cursor: default; opacity: 0.35; }
 .sc-tick { fill: var(--no-green-dim); font-size: 13px; }
 .sc-bar { fill: var(--no-green-deep); }
 .sc-bar.rx { fill: var(--no-green); filter: drop-shadow(0 0 7px rgba(var(--no-green-rgb), 0.95)); }
-.sc-who { fill: var(--no-white); font-size: 14px; }
+/* Scope labels get a background-colored outline, so a cursor line passing behind never cuts the text. */
+.sc-who { fill: var(--no-white); font-size: 14px; stroke: var(--no-bg); stroke-width: 4px; paint-order: stroke; }
 .sc-cur { stroke-width: 2; }
 .sc-sby { stroke-width: 1.5; stroke-dasharray: 5 4; }
 .sc-cur.c1, .sc-tri.c1, .sc-lbl.c1 { stroke: var(--no-amber); fill: var(--no-amber); }
 .sc-cur.c2, .sc-tri.c2, .sc-lbl.c2 { stroke: var(--no-green); fill: var(--no-green); }
-.sc-lbl { font-size: 13px; stroke: none !important; }
+.sc-lbl { font-size: 13px; stroke: var(--no-bg) !important; stroke-width: 4px; paint-order: stroke; }
 .sc-empty { fill: var(--no-green-dim); font-size: 14px; }
 
-/* COM heads */
+/* Radio heads (PTT, MON, and compact's SELECTED) */
 .com {
   border: 1px solid var(--no-green-dark); border-radius: 6px;
   padding: 16px 22px; display: flex; flex-direction: column; gap: 12px;
@@ -143,7 +144,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 .kp-enter { border-color: var(--no-amber); color: var(--no-amber); }
 .ico { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
 
-/* Radio buttons */
+/* Dual-band radio buttons */
 .rads-head { display: flex; justify-content: space-between; font-size: 13px; color: var(--no-green-dim); letter-spacing: 3px; }
 .rads { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: -6px; }
 .rad {

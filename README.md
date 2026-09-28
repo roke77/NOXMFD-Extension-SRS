@@ -53,7 +53,7 @@ local state broadcast, so it doesn't modify NOXMFD or SRS.
 - When SRS isn't running, has stopped sending, or its port is taken, the page says so instead of
   showing stale radios.
 
-![SRS page design](docs/images/srs-page-mockup-ae2-dual-heads-scope.png)
+<p><img src="docs/images/srs-page-compact.png" alt="SRS page, compact layout" width="49%"> <img src="docs/images/srs-page-dual-band.png" alt="SRS page, dual band layout" width="49%"></p>
 
 ---
 

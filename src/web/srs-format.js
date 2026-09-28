@@ -107,12 +107,22 @@
     return current;
   }
 
+  // The canvas for a w×h pane (after the side insets): the 900×900 square, or the 640-wide portrait
+  // canvas as tall as the pane when the pane is at least 1.2× taller than wide and portrait draws
+  // bigger. minH is what the layout needs at 640 wide. s is the scale, W×H the canvas size.
+  function fitCanvas(w, h, minH) {
+    const square = Math.min(w, h) / 900, tall = Math.min(w / 640, h / minH);
+    return h >= w * 1.2 && tall > square
+      ? { portrait: true, s: tall, W: 640, H: h / tall }
+      : { portrait: false, s: square, W: 900, H: 900 };
+  }
+
   // A tap at `x` along a bar `width` wide → volume 0..1, in 5% steps.
   const volAt = (x, width) => Math.min(1, Math.max(0, Math.round((x / width) * 20) / 20));
 
   const api = { DASH, MOD, BANDS, HOLD_MS, STEP_HZ, freq, modName, usable, com2Default, isTx,
     speaker, bandFor, scopeX, scopeBars, tunable, clampHz, stepHz, parseMhz, entryError,
-    com2Pick, monStep, volAt };
+    com2Pick, monStep, fitCanvas, volAt };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.SrsFormat = api;
 })(this);

@@ -4,7 +4,8 @@
 
 Phase 1 is released as 0.1.0 and checked in the game, except receiving (step 4). Phase 2's controls
 are released as 0.2.0, checked in the preview; their in-game check (Phase 2 step 3), together with
-receiving, is next. The project runs in two phases:
+receiving, is next. The compact layout, the PTT/MON heads, mute and the portrait canvas (from a
+tester's feedback) are built and checked in the preview, not yet released. The project runs in two phases:
 
 - **Phase 1 — read-only SRS page.** An EXT page that shows every SRS radio: frequency,
   modulation, name, how many players are tuned, and who is transmitting or receiving.
@@ -146,7 +147,7 @@ rows or buttons.
   heads (PTT and MON) with an active and a standby frequency each, and a button per radio at
   the bottom. The rest of this section describes it.
 
-![SRS page, AE2 design](images/srs-page-mockup-ae2-dual-heads-scope.png)
+<p><img src="images/srs-page-compact.png" alt="SRS page, compact layout" width="49%"> <img src="images/srs-page-dual-band.png" alt="SRS page, dual band layout" width="49%"></p>
 
 - **Header:** `SRS` top left in NOXMFD green at the TGT page's title size (22 px); beside it, in
   dim green, the connection state (`●` green when connected; `NO SRS DATA` red when no packet has
@@ -156,7 +157,8 @@ rows or buttons.
   `TunedClients` count; a bar glows while a radio tuned to it is receiving, with the speaker's name
   beside it. Each head has two cursors: solid on its active frequency and dashed on its standby
   frequency, amber for PTT and green for MON. A legend in the
-  scope header names the colors and line styles.
+  scope header names the colors and line styles. Cursor labels each have their own row, speaker
+  names sit below those rows, and all text is drawn over the bars and cursors with a black outline.
 - **Radio heads:** PTT always shows SRS's `selected` radio, the one push-to-talk transmits on. MON
   (monitor) is a second radio to listen to, which the page remembers, defaulting to the
   lowest-numbered other radio whose modulation isn't DISABLED or INTERCOM; its `◄`/`►` buttons
@@ -213,7 +215,7 @@ pending values (standby), red for alerts, white for key legends.
    and the raw packet. `tools/preview.py` serves the page with mock slices from `docs/samples/`
    (idle, transmitting, receiving, no data, port busy, stale, no mission) or with live packets
    from a running SRS.
-3. **Page** (built). Header, band scope, both COM heads showing their active frequencies and
+3. **Page** (built). Header, band scope, both radio heads showing their active frequencies and
    states, the radio buttons with speakers, and the no-data and no-mission states. The Phase 2
    controls (standby, swap, `▲`/`▼`, keypad glyph, assignment hint) are in the markup but hidden,
    so the layout doesn't move when they arrive. `src/web/srs-format.js` holds the packet rules,

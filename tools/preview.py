@@ -7,12 +7,15 @@ Serves /ext/srs/* from this repo's src/web, /assets/shared|services/* from a NOX
 Plugin.BuildSlice. GET /scenario?s=<name> switches what the stream sends:
   idle, tx          the captured packets in docs/samples/
   rx                idle with R1 receiving VIPER 1-1
-  busy              AE2's mockup data: PTT on R2 transmitting, R1 receiving, players tuned
+  busy              AE2's mockup data: PTT on R2 transmitting, R1 and R5 receiving, players
+                    tuned, volumes, R8 muted
   live              real SRS packets from UDP 127.0.0.1:7082 (don't run the game at the same time)
   unknown           a packet shape the page doesn't recognise
   no-data, port-busy, stale, nomission
 POST /ext/srs/command is checked like SrsCommandMap.cs; in live mode the datagram goes to the real
 SRS on UDP 9040, otherwise a rough simulation applies it to the mock. GET /commands lists them.
+GET /shot?layout=compact|dual switches to busy, seeds the page's own saved state (standby
+frequencies, MON on R1) and opens the page in that layout: the README screenshots.
 """
 import copy, json, socket, sys, threading, time
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
@@ -32,11 +35,15 @@ RX["RadioReceivingState"][1] = {"LastReceivedAt": 0, "IsSecondary": False, "IsSi
 RX["TunedClients"][1] = 1
 RX["ClientCountConnected"] = 2
 
-# AE2's mockup data: PTT on R2 transmitting at 305.250, R1 hearing VIPER 1-1 with 14 tuned.
+# AE2's mockup data: PTT on R2 transmitting at 305.250, R1 hearing VIPER 1-1 with 14 tuned, R5
+# hearing MAGIC 1-1 on 124.800, R8 muted.
 BUSY = copy.deepcopy(RX)
 BUSY["RadioInfo"]["selected"] = 2
-for i, hz in ((2, 305.25e6), (4, 264.5e6), (6, 131e6)):
+for i, hz in ((2, 305.25e6), (4, 264.5e6), (5, 124.8e6), (6, 131e6)):
     BUSY["RadioInfo"]["radios"][i]["freq"] = hz
+for i, vol in ((1, 0.7), (2, 0.8), (8, 0.0)):
+    BUSY["RadioInfo"]["radios"][i]["volume"] = vol
+BUSY["RadioReceivingState"][5] = dict(RX["RadioReceivingState"][1], ReceivedOn=5, SentBy="MAGIC 1-1")
 BUSY["RadioSendingState"] = {"IsSending": True, "SendingOn": 2, "IsEncrypted": 0}
 BUSY["TunedClients"] = [0, 14, 4, 0, 9, 2, 0, 2, 0, 2, 2]
 BUSY["ClientCountConnected"] = 23
@@ -151,6 +158,14 @@ class H(BaseHTTPRequestHandler):
                     time.sleep(0.1)
             except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 return
+        if path == "/shot":
+            state["s"] = "busy"
+            layout = "dual" if parse_qs(u.query).get("layout") == ["dual"] else "compact"
+            seed = {"standby": {"2": 264.5e6, "1": 282e6}, "com2": 1, "layout": layout}
+            sets = "".join(f"localStorage.setItem('srs.{k}', {json.dumps(json.dumps(v))});" for k, v in seed.items())
+            body = f"<script>{sets}location.replace('/');</script>".encode()
+            self.send_response(200); self.send_header("Content-Type", "text/html"); self.end_headers()
+            self.wfile.write(body); return
         if path == "/commands":
             body = json.dumps(commands).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers()

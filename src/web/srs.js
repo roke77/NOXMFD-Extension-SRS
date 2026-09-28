@@ -12,23 +12,17 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ── canvas fit ──────────────────────────────────────────────────────────────────────────────
-// Two canvases, scaled to fit the pane: the 900×900 square, or a 640-wide portrait canvas as tall
-// as the pane (AE3 on the design canvas). Portrait is used in a pane at least 1.2× taller than
-// wide, when it also draws bigger than the square; its extra height goes to the radio rows. The
-// minimum heights are what each layout needs at 640 wide.
-const STAGE = 900, PORTRAIT_W = 640, PORTRAIT_MIN_H = { compact: 900, dual: 1160 };
+// The 900×900 square or, in a tall pane, the 640-wide portrait canvas (AE3 on the design canvas);
+// F.fitCanvas picks. The portrait minimum heights are what each layout needs at 640 wide.
+const PORTRAIT_MIN_H = { compact: 900, dual: 1160 };
 // The shell's vertical MAIN label sits on one side edge (either, depending on the pane), so both
 // sides keep the TGT page's inset: clamp(34px, 5vw, 48px).
 const sideInset = () => Math.min(48, Math.max(34, innerWidth * 0.05));
 let portrait = false;
 function fitStage() {
-  const w = innerWidth - 2 * sideInset(), h = innerHeight;
-  const square = Math.min(w, h) / STAGE;
-  const tall = Math.min(w / PORTRAIT_W, h / PORTRAIT_MIN_H[layout]);
   const was = portrait;
-  portrait = h >= w * 1.2 && tall > square;
-  const s = portrait ? tall : square;
-  const W = portrait ? PORTRAIT_W : STAGE, H = portrait ? h / s : STAGE;
+  const { s, W, H, portrait: p } = F.fitCanvas(innerWidth - 2 * sideInset(), innerHeight, PORTRAIT_MIN_H[layout]);
+  portrait = p;
   const st = $('stage');
   st.classList.toggle('portrait', portrait);
   st.style.width = W + 'px';
@@ -85,7 +79,8 @@ function scopeSvg(v) {
   // cursor's 7 px half-width triangle with a gap.
   const anchor = (px) => (px > X1 - 170 ? 'end' : 'start');
   const off = (px) => (px > X1 - 170 ? -14 : 14);
-  let s = `<path class="sc-grid" d="M${X0} 40H${X1}M${X0} 80H${X1}"/><path class="sc-base" d="M${X0} ${BASE}H${X1}"/>`;
+  // Text goes in `t`, drawn after every bar and cursor so no line crosses a label (srs.css outlines it).
+  let s = `<path class="sc-grid" d="M${X0} 40H${X1}M${X0} 80H${X1}"/><path class="sc-base" d="M${X0} ${BASE}H${X1}"/>`, t = '';
   for (let hz = band.lo; hz <= band.hi + 1; hz += band.step) {
     const px = x(hz);
     const a = hz === band.lo ? 'start' : hz + band.step > band.hi + 1 ? 'end' : 'middle';
@@ -95,7 +90,8 @@ function scopeSvg(v) {
     const h = Math.max(3, Math.min(BAR_MAX, b.tuned * PX_PER_CLIENT));
     const px = x(b.hz);
     s += `<rect class="sc-bar${b.rx ? ' rx' : ''}" x="${px - 5}" y="${BASE - h}" width="10" height="${h}"/>`;
-    if (b.rx) s += `<text class="sc-who" x="${px + off(px) * 1.5}" y="${Math.min(BASE - 8, BASE - h + 14)}" text-anchor="${anchor(px)}">◄ ${esc(b.rx.who)}</text>`;
+    // The speaker sits beside the bar's top, but never above y 80: rows 16–64 hold the cursor labels.
+    if (b.rx) t += `<text class="sc-who" x="${px + off(px) * 1.5}" y="${Math.max(80, Math.min(BASE - 8, BASE - h + 14))}" text-anchor="${anchor(px)}">◄ ${esc(b.rx.who)}</text>`;
   }
   // Head cursors: MON first so PTT draws on top when they share a frequency. Each label has its
   // own row (active: 16 / 32, standby: 48 / 64), so a standby close to an active frequency can't
@@ -106,16 +102,17 @@ function scopeSvg(v) {
     const sby = standby[i];
     if (sby && sby >= band.lo && sby <= band.hi) {
       const sx = x(sby);
-      s += `<path class="sc-cur sc-sby ${cls}" d="M${sx} 18V${BASE}"/><text class="sc-lbl ${cls}" x="${sx + off(sx)}" y="${sbyY}" text-anchor="${anchor(sx)}">SBY</text>`;
+      s += `<path class="sc-cur sc-sby ${cls}" d="M${sx} 18V${BASE}"/>`;
+      t += `<text class="sc-lbl ${cls}" x="${sx + off(sx)}" y="${sbyY}" text-anchor="${anchor(sx)}">SBY</text>`;
     }
     const px = x(r.freq);
-    s += `<path class="sc-cur ${cls}" d="M${px} 18V${BASE}"/><path class="sc-tri ${cls}" d="M${px - 7} 8h14l-7 10z"/>` +
-         `<text class="sc-lbl ${cls}" x="${px + off(px)}" y="${y}" text-anchor="${anchor(px)}">${label} ${F.freq(r.freq)} · ${v.tuned[i] || 0}</text>`;
+    s += `<path class="sc-cur ${cls}" d="M${px} 18V${BASE}"/><path class="sc-tri ${cls}" d="M${px - 7} 8h14l-7 10z"/>`;
+    t += `<text class="sc-lbl ${cls}" x="${px + off(px)}" y="${y}" text-anchor="${anchor(px)}">${label} ${F.freq(r.freq)} · ${v.tuned[i] || 0}</text>`;
   });
-  return s;
+  return s + t;
 }
 
-// ── COM heads ───────────────────────────────────────────────────────────────────────────────
+// ── radio heads ─────────────────────────────────────────────────────────────────────────────
 const KP = '<svg class="kp-ico" viewBox="0 0 24 24" aria-hidden="true"><use href="#kp-glyph"/></svg>';
 const SWAP = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h14l-3-3M20 16H6l3 3"/></svg>';
 
@@ -145,7 +142,19 @@ function comHtml(n, v, title) {
       <span class="right">${rx ? `<span class="who">◄ ${esc(rx.who)}</span>` : ''}${r ? `<span>VOL</span>${volCtl}<span class="c2">${vol}</span>` : ''}</span></div>`;
 }
 
-// ── radio buttons ───────────────────────────────────────────────────────────────────────────
+// ── radio buttons and compact rows ──────────────────────────────────────────────────────────
+// A radio's lamp class and speaker markup: ► YOU while transmitting, the held speaker while
+// receiving, else a dash.
+function activity(v, i) {
+  const tx = F.isTx(v.send, i), rx = v.rx[i];
+  return {
+    lamp: tx ? 'tx' : rx ? 'rx' : '',
+    who: tx ? '<span class="rad-who tx">► YOU</span>'
+       : rx ? `<span class="rad-who rx">◄ ${esc(rx.who)}</span>`
+       : `<span class="rad-who">${F.DASH}</span>`,
+  };
+}
+
 function radsHtml(v) {
   let s = '';
   for (let i = 1; i <= 10; i++) {
@@ -155,18 +164,13 @@ function radsHtml(v) {
       s += `<button class="rad off" disabled><span class="rad-top"><span class="lamp"></span>R${i}<span class="f">${v ? 'OFF' : F.DASH}</span></span><span class="rad-who">${F.DASH}</span></button>`;
       continue;
     }
-    const tx = F.isTx(v.send, i), rx = v.rx[i];
+    const { lamp, who } = activity(v, i);
     const cls = i === v.com[1] ? ' c1' : i === v.com[2] ? ' c2' : '';
-    const lamp = tx ? 'tx' : rx ? 'rx' : '';
-    const who = tx ? '<span class="rad-who tx">► YOU</span>'
-              : rx ? `<span class="rad-who rx">◄ ${esc(rx.who)}</span>`
-              : `<span class="rad-who">${F.DASH}</span>`;
     s += `<button class="rad${cls}" data-act="rad" data-r="${i}" aria-label="Talk on R${i}"><span class="rad-top"><span class="lamp ${lamp}"></span>R${i}<span class="f">${F.freq(r.freq)}</span></span>${who}</button>`;
   }
   return s;
 }
 
-// ── compact rows ────────────────────────────────────────────────────────────────────────────
 function rowsHtml(v) {
   let s = '';
   for (let i = 1; i <= 10; i++) {
@@ -175,13 +179,9 @@ function rowsHtml(v) {
       s += `<div class="row off"><button class="row-pick" disabled><span class="lamp"></span><span class="rn">R${i}</span><span class="f">${v ? 'OFF' : F.DASH}</span></button><button class="mute" disabled>MUTE</button></div>`;
       continue;
     }
-    const tx = F.isTx(v.send, i), rx = v.rx[i], muted = !(r.volume > 0);
-    const lamp = tx ? 'tx' : rx ? 'rx' : '';
-    const who = tx ? '<span class="rad-who tx">► YOU</span>'
-              : rx ? `<span class="rad-who rx">◄ ${esc(rx.who)}</span>`
-              : `<span class="rad-who">${F.DASH}</span>`;
+    const { lamp, who } = activity(v, i), muted = !(r.volume > 0);
     const mute = `<button class="mute${muted ? ' on' : ''}" data-act="mute" data-r="${i}" aria-label="${muted ? 'Unmute' : 'Mute'} R${i}"${r.volMode === 1 ? '' : ' disabled'}>${muted ? 'MUTED' : 'MUTE'}</button>`;
-    s += `<div class="row${i === v.com[1] ? ' c1' : ''}"><button class="row-pick" data-act="pick" data-r="${i}" aria-label="Select R${i}"><span class="lamp ${lamp}"></span><span class="rn">R${i}</span><span class="f">${F.freq(r.freq)}</span>${who}<span class="tun">${v.tuned[i] || 0} TUNED</span></button>${mute}</div>`;
+    s += `<div class="row${i === v.com[1] ? ' c1' : ''}"><button class="row-pick" data-act="rad" data-r="${i}" aria-label="Select R${i}"><span class="lamp ${lamp}"></span><span class="rn">R${i}</span><span class="f">${F.freq(r.freq)}</span>${who}<span class="tun">${v.tuned[i] || 0} TUNED</span></button>${mute}</div>`;
   }
   return s;
 }
@@ -272,7 +272,6 @@ const ACTIONS = {
     const box = el.getBoundingClientRect(); // screen px, already scaled like the stage
     post({ cmd: 'volume', radio: i, vol: F.volAt(e.clientX - box.left, box.width) });
   },
-  pick(_, e, el) { post({ cmd: 'select', radio: Number(el.dataset.r) }); },
   mute(_, e, el) {
     const i = Number(el.dataset.r), r = lastV && lastV.radios[i];
     if (!r) return;
@@ -285,8 +284,8 @@ const ACTIONS = {
     showLayout();
     fitStage();
   },
-  // Tapping a radio makes it PTT. MON's radio moving to PTT drops the MON pick, so MON takes its
-  // default instead of jumping back when PTT moves on.
+  // Tapping a radio (a dual-band button or a compact row) makes it PTT. MON's radio moving to PTT
+  // drops the MON pick, so MON takes its default instead of jumping back when PTT moves on.
   rad(_, e, el) {
     const i = Number(el.dataset.r);
     post({ cmd: 'select', radio: i });

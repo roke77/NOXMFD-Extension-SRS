@@ -93,6 +93,15 @@ assert.strictEqual(F.monStep(radios, 1, 2, -1), 10);
 assert.strictEqual(F.monStep(radios, 10, 9, 1), 1);
 assert.strictEqual(F.monStep([radios[0], radios[1], radios[2]], 1, 2, 1), 2);
 
+// Canvas: portrait only in a clearly tall pane where it draws bigger; it fills the pane's height.
+assert.strictEqual(F.fitCanvas(810, 900, 900).portrait, false);   // square pane: compact stays square
+const tallFit = F.fitCanvas(539, 1090, 1160);                        // the tester's tall MFD pane
+assert.strictEqual(tallFit.portrait, true);
+assert.strictEqual(tallFit.W, 640);
+assert.strictEqual(Math.round(tallFit.H * tallFit.s), 1090);
+assert.strictEqual(F.fitCanvas(702, 900, 1160).portrait, false);  // slightly tall: dual draws bigger square
+assert.deepStrictEqual(F.fitCanvas(1000, 800, 900), { portrait: false, s: 800 / 900, W: 900, H: 900 });
+
 // Volume taps snap to 5%.
 assert.strictEqual(F.volAt(0, 220), 0);
 assert.strictEqual(F.volAt(220, 220), 1);
