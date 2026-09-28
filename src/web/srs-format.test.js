@@ -63,4 +63,40 @@ assert.strictEqual(bars[0].rx.who, 'MAGIC 1-1');
 assert.deepStrictEqual(F.guards(radios, uhf), [243e6]);
 assert.deepStrictEqual(F.guards(radios, F.BANDS[2]), []);
 
+// ── Phase 2 controls ──
+const uhfR = radios[1]; // 1–400 MHz in the default EAM set
+assert.strictEqual(F.tunable(uhfR), true);
+assert.strictEqual(F.tunable(radios[0]), false);
+assert.strictEqual(F.tunable({ ...uhfR, freqMode: 0 }), false);
+
+// ▲/▼ step 25 kHz, snap an off-grid value onto the grid first, and stay inside the range.
+assert.strictEqual(F.stepHz(251000000, 1, uhfR), 251025000);
+assert.strictEqual(F.stepHz(251000000, -1, uhfR), 250975000);
+assert.strictEqual(F.stepHz(251010000, 1, uhfR), 251025000);
+assert.strictEqual(F.stepHz(251010000, -1, uhfR), 251000000);
+assert.strictEqual(F.stepHz(400000000, 1, uhfR), 400000000);
+assert.strictEqual(F.stepHz(1000000, -1, uhfR), 1000000);
+
+// Keypad entry: plain decimals only, checked against the radio's range.
+assert.strictEqual(F.parseMhz('305.25'), 305.25);
+assert.strictEqual(F.parseMhz('.5'), 0.5);
+assert.strictEqual(F.parseMhz('3.0.5'), null);
+assert.strictEqual(F.parseMhz(''), null);
+assert.strictEqual(F.entryError(305.25, uhfR), null);
+assert.strictEqual(F.entryError(null, uhfR), 'ENTER A FREQUENCY');
+assert.strictEqual(F.entryError(401, uhfR), 'MAX 400.000');
+assert.strictEqual(F.entryError(0.5, uhfR), 'MIN 1.000');
+
+// COM 2: the player's pick while valid, else the default; never COM 1's radio.
+assert.strictEqual(F.com2Pick(radios, 1, 6), 6);
+assert.strictEqual(F.com2Pick(radios, 6, 6), 1);
+assert.strictEqual(F.com2Pick(radios, 1, 0), 2);
+assert.strictEqual(F.com2Pick(radios, 1, null), 2);
+
+// Volume taps snap to 5%.
+assert.strictEqual(F.volAt(0, 220), 0);
+assert.strictEqual(F.volAt(220, 220), 1);
+assert.strictEqual(F.volAt(110, 220), 0.5);
+assert.strictEqual(F.volAt(250, 220), 1);
+
 console.log('srs-format: all checks passed');

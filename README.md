@@ -42,6 +42,10 @@ local state broadcast, so it doesn't modify NOXMFD or SRS.
   radio. Each shows the frequency, TX/RX, modulation, players tuned, guard, and the speaker or
   volume.
 - **Every radio at a glance:** R1–R10 with frequency and who's talking, `► YOU` while you transmit.
+- **Tune from the page.** Each head has a standby frequency: step it with ▲▼ or tap it to type one
+  on the keypad, then swap it in. Tap a head to select it, then tap a radio to put it on that COM
+  (COM 1 changes the radio SRS transmits on). Tap GRD to toggle guard, and tap the VOL bar to set
+  the volume. Standby frequencies and your COM 2 radio are remembered in the browser.
 - Follows SRS live: select or retune a radio in SRS's overlay and the page follows.
 - When SRS isn't running, has stopped sending, or its port is taken, the page says so instead of
   showing stale radios.
@@ -76,8 +80,11 @@ The page shows SRS state only while a mission is running; at the main menu it wa
 In `BepInEx/config/com.roque.srs-module.cfg` (or BepInEx's configuration manager):
 
 - **State port** (default `7082`): the UDP port SRS sends its radio state to. Change it only if
-  another program already uses 7082, and set the same port in SRS's settings. Restart the game
-  after changing it.
+  another program already uses 7082, and set the same port in SRS's settings.
+- **Command port** (default `9040`): the UDP port SRS listens on for commands. Match it to SRS's
+  setting if you've changed that.
+
+Restart the game after changing either.
 
 ---
 
@@ -86,7 +93,6 @@ In `BepInEx/config/com.roque.srs-module.cfg` (or BepInEx's configuration manager
 - [Releases and changelog](https://github.com/roke77/NOXMFD-Extension-SRS/releases)
 - [NOXMFD](https://github.com/roke77/NOXMFD): the browser MFD this page runs in
 - [SRS](https://github.com/ciribob/DCS-SimpleRadioStandalone): the radio client this page reads
-- [Original request, roke77/NOXMFD#87](https://github.com/roke77/NOXMFD/issues/87)
 - [Design and roadmap](docs/srs-plan.md)
 
 ---
@@ -95,6 +101,8 @@ In `BepInEx/config/com.roque.srs-module.cfg` (or BepInEx's configuration manager
 
 - `src/plugin/Plugin.cs` registers the **SRS** EXT page and publishes SRS's latest state.
 - `src/plugin/SrsListener.cs` receives SRS's state packets on UDP 127.0.0.1:7082.
+- `src/plugin/SrsCommands.cs` takes the page's commands and sends them to SRS on UDP 9040;
+  `SrsCommandMap.cs` is the allow-list, checked by `dotnet run --project tools/cmdcheck`.
 - `src/plugin/SrsPageAssets.cs` serves the embedded `src/web/` files.
 - `src/web/srs.{html,css,js}` is the page; `srs-format.js` holds its pure helpers, checked by
   `node src/web/srs-format.test.js`.

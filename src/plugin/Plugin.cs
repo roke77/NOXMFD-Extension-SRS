@@ -6,7 +6,8 @@ using UnityEngine;
 namespace SrsModule
 {
     // A separate BepInEx plugin, not part of NOXMFD.dll: it registers the SRS page with NOXMFD's
-    // public Api and publishes SRS's latest state packet as the page's slice (docs/srs-plan.md).
+    // public Api, publishes SRS's latest state packet as the page's slice, and forwards the page's
+    // commands to SRS through SrsCommands (docs/srs-plan.md).
     [BepInPlugin("com.roque.srs-module", "NOXMFD: SRS Extension", MyPluginInfo.PLUGIN_VERSION)]
     [BepInDependency("com.roque.NOXMFD", "0.59.0")]
     [BepInProcess("NuclearOption.exe")]
@@ -21,6 +22,7 @@ namespace SrsModule
         private const long StaleMs = 1000;
 
         private ConfigEntry<int>? _statePort;
+        private ConfigEntry<int>? _commandPort;
         private SrsListener? _listener;
         private float _nextPublish;
         private bool _registered;
@@ -31,15 +33,19 @@ namespace SrsModule
             _statePort = Config.Bind("SRS", "State port", 7082,
                 new ConfigDescription("UDP port SRS sends its radio state to (SRS setting OutgoingDCSUDPOther). Restart the game after changing it.",
                     new AcceptableValueRange<int>(1024, 65535)));
+            _commandPort = Config.Bind("SRS", "Command port", 9040,
+                new ConfigDescription("UDP port SRS listens on for commands (SRS setting CommandListenerUDP). Restart the game after changing it.",
+                    new AcceptableValueRange<int>(1024, 65535)));
 
-            _registered = NOXMFD.Api.RegisterExtension(ExtId, "SRS", SrsPageAssets.Resolve);
+            _registered = NOXMFD.Api.RegisterExtension(ExtId, "SRS", SrsPageAssets.Resolve, SrsCommands.Handle);
             if (!_registered)
             {
                 Log.LogError("[SRS] failed to register with NOXMFD (id already taken?); extension disabled.");
                 return;
             }
             _listener = new SrsListener(_statePort.Value);
-            Log.LogInfo($"SRS extension loaded; listening on UDP 127.0.0.1:{_statePort.Value}.");
+            SrsCommands.Init(_commandPort.Value);
+            Log.LogInfo($"SRS extension loaded; listening on UDP 127.0.0.1:{_statePort.Value}, commands to {_commandPort.Value}.");
         }
 
         private void Update()
@@ -64,6 +70,7 @@ namespace SrsModule
         private void OnDestroy()
         {
             _listener?.Dispose();
+            SrsCommands.Dispose();
             if (_registered) NOXMFD.Api.UnregisterExtension(ExtId);
         }
     }

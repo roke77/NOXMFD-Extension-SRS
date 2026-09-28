@@ -2,8 +2,9 @@
 
 ## Status
 
-Phase 1 is built and checked in the game, except receiving (it needs a second SRS client on the
-server; see step 4). Phase 2 is next. The project runs in two phases:
+Phase 1 is released as 0.1.0 and checked in the game, except receiving (step 4). Phase 2's controls
+are built and checked in the preview; the in-game check, together with receiving, is next. The
+project runs in two phases:
 
 - **Phase 1 — read-only SRS page.** An EXT page that shows every SRS radio: frequency,
   modulation, name, how many players are tuned, and who is transmitting or receiving.
@@ -120,12 +121,13 @@ page ──POST /ext/srs/command──► handler (main thread) ──validate�
   `{"ok":false,"reason":"no-data"|"stale"|"port-busy"|"socket-error","port":…,"ageMs":…}`.
   Forwarding the packet as-is avoids the game's `JsonUtility`, which can't fill nested objects
   under Mono, and keeps the plugin independent of SRS field changes; the page does the parsing.
-- **Commands (Phase 2).** The page posts `{"cmd":"freqSet","radio":2,"mhz":305.25}` and similar.
-  The handler checks the command against an allow-list, `radio` against 1–10 and numbers for range
-  and finiteness, maps it to SRS's schema, and sends one datagram to `127.0.0.1:9040`. Nothing else
-  reaches SRS.
-- **Config** (BepInEx `.cfg`): state port (default 7082), matching SRS's own setting; Phase 2 adds
-  the command port (default 9040).
+- **Commands** (`SrsCommands.cs`, `SrsCommandMap.cs`). The page posts one flat envelope per
+  action: `{"cmd":"select"|"guard","radio":n}`, `{"cmd":"freq","radio":n,"mhz":305.25}` or
+  `{"cmd":"volume","radio":n,"vol":0.5}`. The handler checks the command against that allow-list,
+  `radio` against 1–10 and numbers for range and finiteness, maps it to SRS's schema, and sends one
+  datagram to `127.0.0.1:9040`. Nothing else reaches SRS.
+- **Config** (BepInEx `.cfg`): state port (default 7082) and command port (default 9040), matching
+  SRS's own settings.
 - **Page** (`src/web/`): `srs.html`, `srs.css`, `srs.js`, plus a pure `srs-format.js` (the packet
   rules, speaker hold, COM 2 default and scope geometry) with a `node` test, as in the other
   extensions. Reuses NOXMFD's `/assets/shared/theme.css`, `font.css` and `telemetry-source.js`.
@@ -214,15 +216,24 @@ pending values (standby), red for alerts, white for key legends.
    selected in SRS's overlay and COM 2 takes the next usable radio; retuning moves the bars and
    cursors; the scope switches between UHF AM, VHF AM and VHF FM with COM 1's radio; guard shows
    `GRD OFF` for the FM radios; TX and `► YOU` show while push-to-talk is held and clear on
-   release. Still to check: receiving (speaker names, the speaker hold, `IsSecondary` on guard,
-   and `TunedClients` counts) with a second client, and an SRS restart mid-mission.
+   release; closing SRS mid-mission shows `NO SRS DATA` and clears the radios, and reconnecting
+   recovers the page. Parked until another player can join: receiving (speaker names, the speaker
+   hold, `IsSecondary` on guard, and `TunedClients` counts) with a second client.
 
 ### Phase 2
 
-1. **Command handler and allow-list**, with a `node` or C# check for the validation.
-2. **Controls** on the page: standby frequencies, swap, `▲`/`▼`, the keypad overlay, radio
-   assignment, and volume.
-3. **Live check** of every command against SRS's overlay.
+1. **Command handler and allow-list** (built). `SrsCommands.cs` parses the page's flat envelope
+   (`{"cmd","radio","mhz","vol"}`) and `SrsCommandMap.cs` maps `select`, `guard`, `freq` and
+   `volume` to SRS's datagrams, rejecting anything else, radio 0 or 11+, and non-finite or
+   impossible values; `dotnet run --project tools/cmdcheck` checks it. The command port is a
+   setting (default 9040).
+2. **Controls** (built): standby frequencies, swap, `▲`/`▼`, the keypad overlay, selecting a COM,
+   radio assignment, guard and volume. `srs-format.js` holds the stepping, entry checks, COM 2
+   pick and volume math, covered by `srs-format.test.js`. The page only rewrites a block when its
+   markup changes, so a 10 Hz refresh can't replace a button mid-tap. `tools/preview.py` answers
+   commands: it simulates SRS on the mocks and forwards to the real SRS in `live` mode. Every
+   control is checked in the preview.
+3. **Live check** of every command against SRS's overlay, in the game.
 
 ## Releases
 

@@ -38,6 +38,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- tools/cmdcheck is its own project (a check for SrsCommandMap), not part of the plugin. -->
+    <Compile Remove="tools\**" />
     <!-- Resource names end in ".web.<file>", resolved by SrsPageAssets.cs's suffix match. -->
     <EmbeddedResource Include="src\web\**\*" Exclude="src\web\**\*.md;src\web\**\*.test.js" />
   </ItemGroup>

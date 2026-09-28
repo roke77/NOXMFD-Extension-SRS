@@ -11,6 +11,8 @@ Plugin.BuildSlice. GET /scenario?s=<name> switches what the stream sends:
   live              real SRS packets from UDP 127.0.0.1:7082 (don't run the game at the same time)
   unknown           a packet shape the page doesn't recognise
   no-data, port-busy, stale, nomission
+POST /ext/srs/command is checked like SrsCommandMap.cs; in live mode the datagram goes to the real
+SRS on UDP 9040, otherwise a rough simulation applies it to the mock. GET /commands lists them.
 """
 import copy, json, socket, sys, threading, time
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
@@ -41,6 +43,39 @@ BUSY["ClientCountConnected"] = 23
 
 state = {"s": "idle"}
 live = {"packet": None, "at": 0.0, "error": None}
+MOCKS = {"idle": SAMPLES["idle"], "tx": SAMPLES["tx"], "rx": RX, "busy": BUSY}
+commands = []  # every command body received, for GET /commands
+
+# SRS's UDPCommandType ids, as SrsCommandMap.cs sends them.
+SRS_IDS = {"select": 1, "guard": 2, "volume": 5, "freq": 12}
+
+
+def to_srs(c):
+    """Mirrors SrsCommandMap.ToSrs: the datagram SRS gets, or None when the plugin would reject it."""
+    cmd, r = c.get("cmd"), c.get("radio")
+    if cmd not in SRS_IDS or not isinstance(r, int) or not 1 <= r <= 10:
+        return None
+    d = {"Command": SRS_IDS[cmd], "RadioId": r}
+    if cmd == "freq":
+        if not isinstance(c.get("mhz"), (int, float)) or not 0 < c["mhz"] < 10000: return None
+        d["Frequency"] = c["mhz"]
+    if cmd == "volume":
+        if not isinstance(c.get("vol"), (int, float)) or not 0 <= c["vol"] <= 1: return None
+        d["Volume"] = c["vol"]
+    return d
+
+
+def simulate(d):
+    """Rough stand-in for SRS applying a datagram to the mock scenario, enough to see the page follow."""
+    st = MOCKS.get(state["s"])
+    if not st: return
+    info = st["RadioInfo"]; r = info["radios"][d["RadioId"]]
+    if d["Command"] == 1: info["selected"] = d["RadioId"]
+    elif d["Command"] == 12: r["freq"] = min(r["freqMax"], max(r["freqMin"], round(d["Frequency"] * 1e6)))
+    elif d["Command"] == 5: r["volume"] = d["Volume"]
+    elif d["Command"] == 2:
+        if r["secFreq"] > 1: r["_grd"], r["secFreq"] = r["secFreq"], 0
+        else: r["secFreq"] = r.get("_grd", 243e6)
 
 
 def listen_live():
@@ -55,12 +90,8 @@ def listen_live():
 
 
 def slice_for(name):
-    if name in SAMPLES:
-        return {"ok": True, "ageMs": 120, "state": SAMPLES[name]}
-    if name == "rx":
-        return {"ok": True, "ageMs": 80, "state": RX}
-    if name == "busy":
-        return {"ok": True, "ageMs": 60, "state": BUSY}
+    if name in MOCKS:
+        return {"ok": True, "ageMs": 80, "state": MOCKS[name]}
     if name == "unknown":
         return {"ok": True, "ageMs": 60, "state": {"Radios": []}}
     if name == "live":
@@ -123,7 +154,25 @@ class H(BaseHTTPRequestHandler):
                     time.sleep(0.1)
             except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 return
+        if path == "/commands":
+            body = json.dumps(commands).encode()
+            self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers()
+            self.wfile.write(body); return
         self.send_error(404)
+
+    def do_POST(self):
+        if urlparse(self.path).path != "/ext/srs/command":
+            self.send_error(404); return
+        if self.headers.get("Content-Type") != "application/json":
+            self.send_error(415); return
+        c = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
+        d = to_srs(c)
+        commands.append({"page": c, "srs": d})
+        if d and state["s"] == "live":
+            socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(json.dumps(d).encode(), ("127.0.0.1", 9040))
+        elif d:
+            simulate(d)
+        self.send_response(204); self.end_headers()
 
 
 if __name__ == "__main__":

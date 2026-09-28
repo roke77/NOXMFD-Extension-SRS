@@ -29,8 +29,9 @@ button {
   text-transform: uppercase;
 }
 
-/* Phase 2 controls keep their place in the layout but stay hidden until they work. */
-.p2 { visibility: hidden; }
+/* Press feedback for every control, so a tap on a touchscreen visibly lands. */
+button:not(:disabled):active { background-color: rgba(var(--no-green-rgb), 0.18); }
+button:disabled { cursor: default; opacity: 0.35; }
 
 .c1 { color: var(--no-amber); }
 .c2 { color: var(--no-green); }
@@ -59,6 +60,7 @@ button {
 .sc-grd { stroke: var(--no-gray); stroke-width: 1.5; stroke-dasharray: 2 4; }
 .sc-grd-t { fill: var(--no-white-dim); font-size: 12px; }
 .sc-cur { stroke-width: 2; }
+.sc-sby { stroke-width: 1.5; stroke-dasharray: 5 4; }
 .sc-cur.c1, .sc-tri.c1, .sc-lbl.c1 { stroke: var(--no-amber); fill: var(--no-amber); }
 .sc-cur.c2, .sc-tri.c2, .sc-lbl.c2 { stroke: var(--no-green); fill: var(--no-green); }
 .sc-lbl { font-size: 13px; stroke: none !important; }
@@ -69,9 +71,12 @@ button {
   border: 1px solid var(--no-green-dark); border-radius: 6px;
   padding: 16px 22px; display: flex; flex-direction: column; gap: 12px;
 }
+/* The whole head is a tap target that selects that COM; its buttons do their own action too. */
+.com { cursor: pointer; }
 .com.sel { border: 2px solid var(--no-amber); }
 .com-top { display: flex; justify-content: space-between; align-items: center; font-size: 16px; letter-spacing: 3px; }
 .com.sel .com-top > span:first-child { color: var(--no-amber); }
+.com-top > span:first-child { color: var(--no-green); }
 .badge { font-size: 16px; letter-spacing: 3px; padding: 2px 12px; border-radius: 3px; min-height: 26px; }
 .badge.tx { background: var(--no-green); color: #000; }
 .badge.rx { border: 1px solid var(--no-green); }
@@ -84,18 +89,49 @@ button {
 .kp-ico { width: 22px; height: 22px; fill: var(--no-amber); }
 .steps { margin-left: auto; display: flex; flex-direction: column; gap: 8px; }
 .steps button { width: 64px; height: 40px; border: 1px solid var(--no-white-dark); border-radius: 4px; color: var(--no-white); font-size: 18px; }
-.com-foot { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--no-green-dim); min-height: 20px; }
+.com-foot { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--no-green-dim); min-height: 32px; }
 .com-foot .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+/* GRD: a bordered chip so it reads as tappable; plain text on radios SRS won't let us toggle. */
+.grd { height: 32px; padding: 0 10px; border: 1px solid var(--no-white-dark); border-radius: 4px; color: var(--no-green); letter-spacing: 1px; }
 .who { color: var(--no-white); font-size: 16px; }
-.vol { width: 220px; height: 8px; background: var(--no-green-dark); border-radius: 2px; }
-.vol > div { height: 8px; background: var(--no-green); border-radius: 2px; }
+/* The VOL bar is a 32 px tall tap target around the thin visible bar. */
+.vol { display: block; width: 160px; height: 32px; padding: 12px 0; }
+.vol > div { height: 8px; background: var(--no-green-dark); border-radius: 2px; }
+.vol > div > div { height: 8px; background: var(--no-green); border-radius: 2px; }
+
+/* Keypad (the NOAutopilot page's), over the whole stage. */
+.keypad-scrim {
+  position: absolute; inset: 0; background: rgba(0, 0, 0, 0.72);
+  display: flex; align-items: center; justify-content: center; z-index: 10;
+}
+.keypad-scrim[hidden] { display: none; }
+.keypad {
+  width: 360px; padding: 20px; background: var(--no-bg);
+  border: 1px solid var(--no-green-dark); border-radius: 6px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.key { border: 1px solid var(--no-white-dark); border-radius: 4px; color: var(--no-white); }
+.kp-title { font-size: 16px; letter-spacing: 3px; color: var(--no-amber); }
+.kp-range { font-size: 13px; letter-spacing: 1px; color: var(--no-green-dim); margin-top: -6px; }
+.kp-display {
+  height: 64px; padding: 0 14px; border: 1px solid var(--no-amber); border-radius: 4px;
+  display: flex; align-items: center; justify-content: flex-end; font-size: 34px; color: var(--no-amber);
+}
+.kp-display.bad { border-color: var(--no-red); color: var(--no-red); }
+.kp-error { height: 16px; font-size: 13px; letter-spacing: 1px; color: var(--no-red); }
+.kp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.kp-grid .key { height: 60px; font-size: 24px; }
+.kp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kp-actions .key { height: 56px; font-size: 18px; letter-spacing: 3px; }
+.kp-enter { border-color: var(--no-amber); color: var(--no-amber); }
+.ico { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Radio buttons */
 .rads-head { display: flex; justify-content: space-between; font-size: 13px; color: var(--no-green-dim); letter-spacing: 3px; }
 .rads { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: -6px; }
 .rad {
   height: 64px; border: 1px solid var(--no-white-dark); border-radius: 4px; color: var(--no-white);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  flex-direction: column; gap: 5px;
 }
 .rad.c1 { border: 2px solid var(--no-amber); color: var(--no-amber); }
 .rad.c2 { border: 2px solid var(--no-green); }

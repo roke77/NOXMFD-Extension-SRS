@@ -79,8 +79,41 @@
     return [...out].sort((a, b) => a - b);
   }
 
-  const api = { DASH, MOD, BANDS, HOLD_MS, freq, modName, guard, usable, com2Default, isTx, speaker,
-    bandFor, scopeX, scopeBars, guards };
+  // ── Phase 2 controls ──────────────────────────────────────────────────────────────────────
+  const STEP_HZ = 25000; // 25 kHz, the AM/FM channel spacing
+  // SRS only applies frequency, guard and volume changes to radios its overlay controls.
+  const tunable = (r) => usable(r) && r.freqMode === 1;
+  const clampHz = (hz, r) => Math.min(r.freqMax, Math.max(r.freqMin, hz));
+  // One ▲/▼ step from `hz` (the standby, or the active frequency when there's no standby yet),
+  // snapped to the 25 kHz grid and kept inside the radio's range.
+  function stepHz(hz, dir, r) {
+    const next = dir > 0 ? (Math.floor(hz / STEP_HZ) + 1) * STEP_HZ : (Math.ceil(hz / STEP_HZ) - 1) * STEP_HZ;
+    return clampHz(next, r);
+  }
+
+  // Keypad text → MHz, or null for anything that isn't a plain decimal number.
+  const parseMhz = (text) => (/^(\d+\.?\d*|\.\d+)$/.test(text) ? parseFloat(text) : null);
+  // Why a typed frequency can't be used on this radio, or null when it can.
+  function entryError(mhz, r) {
+    if (mhz == null) return 'ENTER A FREQUENCY';
+    const hz = Math.round(mhz * 1e6);
+    if (hz < r.freqMin) return 'MIN ' + freq(r.freqMin);
+    if (hz > r.freqMax) return 'MAX ' + freq(r.freqMax);
+    return null;
+  }
+
+  // COM 2's radio: the player's pick while it's usable and isn't COM 1's, else the default.
+  function com2Pick(radios, selected, stored) {
+    return Number.isInteger(stored) && stored !== selected && usable((radios || [])[stored])
+      ? stored : com2Default(radios, selected);
+  }
+
+  // A tap at `x` along a bar `width` wide → volume 0..1, in 5% steps.
+  const volAt = (x, width) => Math.min(1, Math.max(0, Math.round((x / width) * 20) / 20));
+
+  const api = { DASH, MOD, BANDS, HOLD_MS, STEP_HZ, freq, modName, guard, usable, com2Default, isTx,
+    speaker, bandFor, scopeX, scopeBars, guards, tunable, clampHz, stepHz, parseMhz, entryError,
+    com2Pick, volAt };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.SrsFormat = api;
 })(this);
