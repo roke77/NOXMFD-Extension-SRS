@@ -1,0 +1,111 @@
+/* SRS page, AE2 "dual heads with band scope" design (docs/srs-plan.md, "Page design"). NOXMFD's
+   theme tokens: green = live, amber = selected / COM 1 / pending, red = alert, white = key values. */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; height: 100%;
+  background: var(--no-bg);
+  color: var(--no-green);
+  font-family: var(--no-font);
+  overflow: hidden;
+  -webkit-user-select: none; user-select: none;
+}
+
+button {
+  font: inherit; color: inherit; background: none; border: 0; margin: 0; padding: 0;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+
+/* ponytail: laid out on AE2's fixed 900x900 canvas and scaled to fit the pane (srs.js fitStage), like
+   the NOAutopilot page; a very tall or wide pane letterboxes. A responsive reflow is the upgrade. */
+.stage {
+  position: absolute; left: 0; top: 0;
+  width: 900px; height: 900px;
+  padding: 28px;
+  display: flex; flex-direction: column; gap: 14px;
+  transform-origin: 0 0;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Phase 2 controls keep their place in the layout but stay hidden until they work. */
+.p2 { visibility: hidden; }
+
+.c1 { color: var(--no-amber); }
+.c2 { color: var(--no-green); }
+.dim { color: var(--no-green-dim); }
+.lbl { font-size: 12px; color: var(--no-green-dim); letter-spacing: 3px; }
+
+/* Header: the TGT page's title style. */
+.head { display: flex; justify-content: space-between; align-items: baseline; }
+.title { font-size: 22px; letter-spacing: 0.08em; }
+.status { font-size: 12px; color: var(--no-green-dim); }
+.status.bad { color: var(--no-red); }
+
+/* Band scope */
+.scope {
+  border: 1px solid var(--no-green-dark); border-radius: 6px;
+  padding: 10px 12px 4px; display: flex; flex-direction: column; gap: 2px;
+}
+.scope-head { display: flex; justify-content: space-between; padding: 0 8px; font-size: 12px; letter-spacing: 3px; color: var(--no-green-dim); }
+#scope { width: 836px; height: 148px; font-family: var(--no-font); }
+.sc-grid { stroke: #0e240e; stroke-width: 1; }
+.sc-base { stroke: var(--no-green-deep); stroke-width: 1.5; }
+.sc-tick { fill: var(--no-green-dim); font-size: 13px; }
+.sc-bar { fill: var(--no-green-deep); }
+.sc-bar.rx { fill: var(--no-green); filter: drop-shadow(0 0 7px rgba(var(--no-green-rgb), 0.95)); }
+.sc-who { fill: var(--no-white); font-size: 14px; }
+.sc-grd { stroke: var(--no-gray); stroke-width: 1.5; stroke-dasharray: 2 4; }
+.sc-grd-t { fill: var(--no-white-dim); font-size: 12px; }
+.sc-cur { stroke-width: 2; }
+.sc-cur.c1, .sc-tri.c1, .sc-lbl.c1 { stroke: var(--no-amber); fill: var(--no-amber); }
+.sc-cur.c2, .sc-tri.c2, .sc-lbl.c2 { stroke: var(--no-green); fill: var(--no-green); }
+.sc-lbl { font-size: 13px; stroke: none !important; }
+.sc-empty { fill: var(--no-green-dim); font-size: 14px; }
+
+/* COM heads */
+.com {
+  border: 1px solid var(--no-green-dark); border-radius: 6px;
+  padding: 16px 22px; display: flex; flex-direction: column; gap: 12px;
+}
+.com.sel { border: 2px solid var(--no-amber); }
+.com-top { display: flex; justify-content: space-between; align-items: center; font-size: 16px; letter-spacing: 3px; }
+.com.sel .com-top > span:first-child { color: var(--no-amber); }
+.badge { font-size: 16px; letter-spacing: 3px; padding: 2px 12px; border-radius: 3px; min-height: 26px; }
+.badge.tx { background: var(--no-green); color: #000; }
+.badge.rx { border: 1px solid var(--no-green); }
+.com-mid { display: flex; align-items: center; gap: 18px; }
+.act, .sby { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.act-f { font-size: 64px; line-height: 1; color: var(--no-white); }
+.swap { width: 72px; height: 72px; border: 1px solid var(--no-white-dark); border-radius: 50%; color: var(--no-white); }
+.sby { padding: 6px 10px; margin: -6px -10px; border-radius: 4px; }
+.sby-v { display: flex; align-items: center; gap: 10px; font-size: 44px; line-height: 1; color: var(--no-amber); }
+.kp-ico { width: 22px; height: 22px; fill: var(--no-amber); }
+.steps { margin-left: auto; display: flex; flex-direction: column; gap: 8px; }
+.steps button { width: 64px; height: 40px; border: 1px solid var(--no-white-dark); border-radius: 4px; color: var(--no-white); font-size: 18px; }
+.com-foot { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--no-green-dim); min-height: 20px; }
+.com-foot .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.who { color: var(--no-white); font-size: 16px; }
+.vol { width: 220px; height: 8px; background: var(--no-green-dark); border-radius: 2px; }
+.vol > div { height: 8px; background: var(--no-green); border-radius: 2px; }
+
+/* Radio buttons */
+.rads-head { display: flex; justify-content: space-between; font-size: 13px; color: var(--no-green-dim); letter-spacing: 3px; }
+.rads { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: -6px; }
+.rad {
+  height: 64px; border: 1px solid var(--no-white-dark); border-radius: 4px; color: var(--no-white);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+}
+.rad.c1 { border: 2px solid var(--no-amber); color: var(--no-amber); }
+.rad.c2 { border: 2px solid var(--no-green); }
+.rad.off { color: var(--no-white-dark); }
+.rad-top { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+.rad-top .f { color: var(--no-white); }
+.rad.off .rad-top .f { color: var(--no-white-dark); }
+.rad-who { font-size: 13px; letter-spacing: 1px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--no-white-dark); }
+.rad-who.rx { color: var(--no-white); }
+.rad-who.tx { color: var(--no-green); }
+.lamp { width: 10px; height: 10px; border-radius: 50%; background: var(--no-green-dark); }
+.lamp.tx { background: var(--no-green); }
+.lamp.rx { background: none; border: 2px solid var(--no-green); }

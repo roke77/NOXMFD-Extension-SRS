@@ -5,26 +5,32 @@
   <title>SRS</title>
   <link rel="stylesheet" href="/assets/shared/font.css">
   <link rel="stylesheet" href="/assets/shared/theme.css">
-  <style>
-    /* Placeholder page (Phase 1, step 2): proves the slice arrives. The AE2 page replaces it. */
-    html, body { margin: 0; height: 100%; background: var(--no-bg); color: var(--no-green); font-family: var(--no-font); }
-    body { box-sizing: border-box; padding: 20px 48px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
-    .head { display: flex; justify-content: space-between; align-items: baseline; }
-    .title { font-size: 22px; letter-spacing: 0.08em; }
-    #status { font-size: 12px; color: var(--no-green-dim); }
-    #status.bad { color: var(--no-red); }
-    table { border-collapse: collapse; font-size: 16px; }
-    td { padding: 4px 14px 4px 0; }
-    td.f { color: var(--no-white); }
-    .tx { color: #000; background: var(--no-green); padding: 0 6px; }
-    .rx { border: 1px solid var(--no-green); padding: 0 6px; }
-    pre { margin: 0; flex: 1; overflow: auto; font-size: 11px; color: var(--no-green-dim); }
-  </style>
+  <link rel="stylesheet" href="/ext/srs/srs.css">
 </head>
 <body>
-  <div class="head"><span class="title">SRS</span><span id="status">WAITING FOR MISSION</span></div>
-  <table id="radios"></table>
-  <pre id="raw"></pre>
-  <script type="module" src="/ext/srs/srs.js"></script>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="kp-glyph" viewBox="0 0 24 24"><circle cx="7" cy="4" r="1.6"/><circle cx="12" cy="4" r="1.6"/><circle cx="17" cy="4" r="1.6"/><circle cx="7" cy="9" r="1.6"/><circle cx="12" cy="9" r="1.6"/><circle cx="17" cy="9" r="1.6"/><circle cx="7" cy="14" r="1.6"/><circle cx="12" cy="14" r="1.6"/><circle cx="17" cy="14" r="1.6"/><circle cx="12" cy="19" r="1.6"/></symbol></svg>
+<div class="stage" id="stage">
+
+  <div class="head">
+    <span class="title">SRS</span>
+    <span class="status" id="status">WAITING FOR MISSION</span>
+  </div>
+
+  <div class="scope">
+    <div class="scope-head">
+      <span id="band">—</span>
+      <span><span class="c1">COM 1</span> · <span class="c2">COM 2</span> · ━ ACTIVE <span class="p2">┅ STANDBY</span></span>
+    </div>
+    <svg id="scope" viewBox="0 0 844 150" role="img" aria-label="Band scope"></svg>
+  </div>
+
+  <section class="com sel" id="com1"></section>
+  <section class="com" id="com2"></section>
+
+  <div class="rads-head"><span>RADIOS</span><span class="p2">TAP A RADIO TO ASSIGN IT TO THE SELECTED COM</span></div>
+  <div class="rads" id="rads"></div>
+</div>
+<script src="/ext/srs/srs-format.js"></script>
+<script type="module" src="/ext/srs/srs.js"></script>
 </body>
 </html>

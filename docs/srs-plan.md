@@ -2,8 +2,8 @@
 
 ## Status
 
-Phase 1 in progress: the plugin skeleton (step 2) is built with a placeholder page; the AE2 page
-is next. The project runs in two phases:
+Phase 1 in progress: the plugin skeleton (step 2) and the read-only AE2 page (step 3) are built;
+the live check (step 4) is next. The project runs in two phases:
 
 - **Phase 1 — read-only SRS page.** An EXT page that shows every SRS radio: frequency,
   modulation, name, how many players are tuned, and who is transmitting or receiving.
@@ -111,22 +111,24 @@ page ──POST /ext/srs/command──► handler (main thread) ──validate�
 ```
 
 - **Plugin** (BepInEx, depends on NOXMFD). Registers extension id `srs`, label `SRS`.
-- **Listener.** A background thread owns a `UdpClient` bound to `127.0.0.1:7082` and keeps the last
-  datagram and its arrival time in a volatile field. It never touches Unity.
-- **Publishing.** `Update()` publishes on the main thread whenever a new packet arrived, and once
-  more when data goes stale (no packet for 1 s). The slice wraps the raw packet rather than
-  re-modelling it: `{"ok":true,"ageMs":…,"state":<packet>}`, or `{"ok":false,"reason":"…"}`.
+- **Listener** (`SrsListener.cs`). A background thread owns a `UdpClient` bound to `127.0.0.1:7082`
+  and keeps the last datagram and its arrival time behind a lock. It never touches Unity. If the
+  port can't be bound (another program holds it) it logs a warning and retries every 5 s.
+- **Publishing** (`Plugin.cs`). `Update()` publishes on the main thread at NOXMFD's 10 Hz frame
+  rate. The slice wraps the raw packet rather than re-modelling it:
+  `{"ok":true,"ageMs":…,"state":<packet>}` while the newest packet is at most 1 s old, otherwise
+  `{"ok":false,"reason":"no-data"|"stale"|"port-busy"|"socket-error","port":…,"ageMs":…}`.
   Forwarding the packet as-is avoids the game's `JsonUtility`, which can't fill nested objects
   under Mono, and keeps the plugin independent of SRS field changes; the page does the parsing.
 - **Commands (Phase 2).** The page posts `{"cmd":"freqSet","radio":2,"mhz":305.25}` and similar.
   The handler checks the command against an allow-list, `radio` against 1–10 and numbers for range
   and finiteness, maps it to SRS's schema, and sends one datagram to `127.0.0.1:9040`. Nothing else
   reaches SRS.
-- **Config** (BepInEx `.cfg`): state port (default 7082) and command port (default 9040), matching
-  SRS's own settings.
-- **Page** (`src/web/`): `srs.html`, `srs.css`, `srs.js`, plus a pure `srs-format.js` (frequency
-  and modulation formatting, stale checks) with a `node` test, as in the other extensions. Reuses
-  NOXMFD's `/assets/shared/theme.css` and `font.css`.
+- **Config** (BepInEx `.cfg`): state port (default 7082), matching SRS's own setting; Phase 2 adds
+  the command port (default 9040).
+- **Page** (`src/web/`): `srs.html`, `srs.css`, `srs.js`, plus a pure `srs-format.js` (the packet
+  rules, speaker hold, COM 2 default and scope geometry) with a `node` test, as in the other
+  extensions. Reuses NOXMFD's `/assets/shared/theme.css`, `font.css` and `telemetry-source.js`.
 
 ## Page design
 
@@ -190,8 +192,12 @@ pending values (standby), red for alerts, white for key legends.
    and the raw packet. `tools/preview.py` serves the page with mock slices from `docs/samples/`
    (idle, transmitting, receiving, no data, port busy, stale, no mission) or with live packets
    from a running SRS.
-3. **Page.** Header, band scope, both COM heads showing their active frequencies and states, the
-   radio buttons with speakers, and the no-data state, replacing the placeholder.
+3. **Page** (built). Header, band scope, both COM heads showing their active frequencies and
+   states, the radio buttons with speakers, and the no-data and no-mission states. The Phase 2
+   controls (standby, swap, `▲`/`▼`, keypad glyph, assignment hint) are in the markup but hidden,
+   so the layout doesn't move when they arrive. `src/web/srs-format.js` holds the packet rules,
+   checked by `node src/web/srs-format.test.js` against `docs/samples/`. The preview's `busy`
+   scenario reproduces the AE2 mockup's data.
 4. **Live check.** SRS connected to a server in EAM, the game running, the page open on a second
    device. Check tuning, TX, RX and SRS restarts.
 

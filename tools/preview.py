@@ -7,7 +7,9 @@ Serves /ext/srs/* from this repo's src/web, /assets/shared|services/* from a NOX
 Plugin.BuildSlice. GET /scenario?s=<name> switches what the stream sends:
   idle, tx          the captured packets in docs/samples/
   rx                idle with R1 receiving VIPER 1-1
+  busy              AE2's mockup data: COM 1 on R2 transmitting, R1 receiving, players tuned
   live              real SRS packets from UDP 127.0.0.1:7082 (don't run the game at the same time)
+  unknown           a packet shape the page doesn't recognise
   no-data, port-busy, stale, nomission
 """
 import copy, json, socket, sys, threading, time
@@ -27,6 +29,15 @@ RX["RadioReceivingState"][1] = {"LastReceivedAt": 0, "IsSecondary": False, "IsSi
                                 "IsReceiving": True}
 RX["TunedClients"][1] = 1
 RX["ClientCountConnected"] = 2
+
+# AE2's mockup data: COM 1 on R2 transmitting at 305.250, R1 hearing VIPER 1-1 with 14 tuned.
+BUSY = copy.deepcopy(RX)
+BUSY["RadioInfo"]["selected"] = 2
+for i, hz in ((2, 305.25e6), (4, 264.5e6), (6, 131e6)):
+    BUSY["RadioInfo"]["radios"][i]["freq"] = hz
+BUSY["RadioSendingState"] = {"IsSending": True, "SendingOn": 2, "IsEncrypted": 0}
+BUSY["TunedClients"] = [0, 14, 4, 0, 9, 2, 0, 2, 0, 2, 2]
+BUSY["ClientCountConnected"] = 23
 
 state = {"s": "idle"}
 live = {"packet": None, "at": 0.0, "error": None}
@@ -48,6 +59,10 @@ def slice_for(name):
         return {"ok": True, "ageMs": 120, "state": SAMPLES[name]}
     if name == "rx":
         return {"ok": True, "ageMs": 80, "state": RX}
+    if name == "busy":
+        return {"ok": True, "ageMs": 60, "state": BUSY}
+    if name == "unknown":
+        return {"ok": True, "ageMs": 60, "state": {"Radios": []}}
     if name == "live":
         if live["packet"] is None:
             return {"ok": False, "reason": live["error"] or "no-data", "port": 7082, "ageMs": -1}
