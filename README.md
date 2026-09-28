@@ -2,7 +2,7 @@
 
 [![NOXMFD](https://img.shields.io/badge/Requires-NOXMFD%200.59.0%2B-blue)](https://github.com/roke77/NOXMFD)
 [![SRS](https://img.shields.io/badge/Requires-SRS-lightgrey)](https://github.com/ciribob/DCS-SimpleRadioStandalone)
-[![Version](https://img.shields.io/badge/Version-0.2.1-green)](https://github.com/roke77/NOXMFD-Extension-SRS/releases)
+[![Version](https://img.shields.io/badge/Version-0.3.0-green)](https://github.com/roke77/NOXMFD-Extension-SRS/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Adds an **SRS** page to [NOXMFD](https://github.com/roke77/NOXMFD)'s browser MFD that shows your
