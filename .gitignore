@@ -1,2 +1,10 @@
+bin/
+obj/
+.vs/
+*.user
+
+# Local machine-specific game path override (see SrsModule.csproj)
+GameDir.props
+
 # Ad-hoc local files (design exports, drafts) — never committed.
 _scratch/

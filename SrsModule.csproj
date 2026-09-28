@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    SRS Module: a standalone NOXMFD extension (see NOXMFD's EXTENSIONS.md) giving SRS an MFD page.
+    It reads SRS's local UDP state broadcast (docs/srs-plan.md) and consumes NOXMFD only through
+    its public Api (the prebuilt lib\NOXMFD.dll); it references no game or SRS assembly.
+
+    >>> SET YOUR GAME PATH <<<
+    GameDir must point at your Nuclear Option install on the machine that BUILDS this. Don't edit
+    the default below; create a local, gitignored GameDir.props next to this file instead:
+
+      <Project><PropertyGroup>
+        <GameDir>D:\SteamLibrary\steamapps\common\Nuclear Option</GameDir>
+      </PropertyGroup></Project>
+  -->
+  <Import Project="GameDir.props" Condition="Exists('GameDir.props')" />
+
+  <PropertyGroup>
+    <GameDir Condition="'$(GameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Nuclear Option</GameDir>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>NOXMFD.SrsModule</AssemblyName>
+    <Product>NOXMFD: SRS Extension</Product>
+    <Description>SRS radio page for NOXMFD</Description>
+    <Version>0.0.1</Version>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <RootNamespace>SrsModule</RootNamespace>
+    <DebugType>portable</DebugType>
+    <NoWarn>BepInEx002</NoWarn>
+    <RestoreAdditionalProjectSources>
+      https://api.nuget.org/v3/index.json;
+      https://nuget.bepinex.dev/v3/index.json;
+      https://nuget.samboy.dev/v3/index.json
+    </RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Resource names end in ".web.<file>", resolved by SrsPageAssets.cs's suffix match. -->
+    <EmbeddedResource Include="src\web\**\*" Exclude="src\web\**\*.md;src\web\**\*.test.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.Core" Version="5.4.21" />
+    <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
+    <PackageReference Include="UnityEngine.Modules" Version="2022.3.6" IncludeAssets="compile" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Private=false: BepInEx already loads NOXMFD.dll itself, so bundling a second copy would
+         double-load the assembly. -->
+    <Reference Include="NOXMFD">
+      <HintPath>lib\NOXMFD.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="DeployToGame" AfterTargets="Build">
+    <Copy
+      SourceFiles="$(OutputPath)$(AssemblyName).dll"
+      DestinationFolder="$(GameDir)\BepInEx\plugins"
+      OverwriteReadOnlyFiles="true" />
+    <Message Text="Deployed $(AssemblyName).dll to $(GameDir)\BepInEx\plugins" Importance="high" />
+  </Target>
+
+</Project>

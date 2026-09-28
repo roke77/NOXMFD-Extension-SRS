@@ -2,7 +2,8 @@
 
 ## Status
 
-Planning. Nothing is built yet. The project runs in two phases:
+Phase 1 in progress: the plugin skeleton (step 2) is built with a placeholder page; the AE2 page
+is next. The project runs in two phases:
 
 - **Phase 1 — read-only SRS page.** An EXT page that shows every SRS radio: frequency,
   modulation, name, how many players are tuned, and who is transmitting or receiving.
@@ -184,12 +185,13 @@ pending values (standby), red for alerts, white for key legends.
    binding the port). Idle and transmitting are captured. Still to capture: receiving, with a
    second client talking on the same frequency, which also confirms `SentBy`, `IsSecondary` and
    whether `TunedClients` excludes the local client.
-2. **Plugin skeleton.** Registration, listener thread, stale detection, slice publishing, config
-   entries, embedded page assets.
+2. **Plugin skeleton** (built). Registration, listener thread, stale detection, slice publishing,
+   the state-port config entry, embedded page assets, and a placeholder page that lists the radios
+   and the raw packet. `tools/preview.py` serves the page with mock slices from `docs/samples/`
+   (idle, transmitting, receiving, no data, port busy, stale, no mission) or with live packets
+   from a running SRS.
 3. **Page.** Header, band scope, both COM heads showing their active frequencies and states, the
-   radio buttons with speakers, and the no-data state. `tools/preview.py` serves
-   the page with mock slices (connected, transmitting, receiving, no data), as in the NOAutopilot
-   extension.
+   radio buttons with speakers, and the no-data state, replacing the placeholder.
 4. **Live check.** SRS connected to a server in EAM, the game running, the page open on a second
    device. Check tuning, TX, RX and SRS restarts.
 
@@ -212,6 +214,8 @@ pending values (standby), red for alerts, white for key legends.
   `FilePresetChannelsStore`) aren't in the packet. Phase 1 shows the radio's `name` and `channel`
   number only.
 - **Local only.** SRS and the game must run on the same PC; the extension talks to `127.0.0.1`.
+- **In a mission only.** NOXMFD carries extension slices inside its mission telemetry frame; at the
+  main menu it sends pings without them, so the page shows SRS state only while a mission runs.
 
 ## Open questions
 
