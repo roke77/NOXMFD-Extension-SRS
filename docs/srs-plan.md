@@ -138,12 +138,16 @@ One full page on the 900×900 canvas used by the other extension pages.
 - **Header:** `SRS` top left in NOXMFD green at the TGT page's title size (22 px); on the right, in
   dim green, the connection state (`●` green when connected; `NO SRS DATA` red when no packet has
   arrived for 1 s), `EAM`, and `ClientCountConnected`.
-- **Band scope:** the UHF AM band, 225–400 MHz. Each frequency in use is a bar whose height is its
+- **Band scope:** one scope showing COM 1's band: UHF AM 225–400 MHz, VHF AM 118–137 MHz, or VHF FM
+  30–88 MHz. COM 2's cursors appear only when COM 2 is on the same band. Each frequency in use is a bar whose height is its
   `TunedClients` count; a bar glows while a radio tuned to it is receiving, with the speaker's name
   beside it. Each COM head has two cursors: solid on its active frequency and dashed on its standby
   frequency, amber for COM 1 and green for COM 2. Guard frequencies are labelled. A legend in the
   scope header names the colors and line styles.
-- **COM heads:** two stacked panels, COM 1 with the amber selection border. Each shows the assigned
+- **COM heads:** COM 1 always shows SRS's `selected` radio, the one push-to-talk transmits on, so
+  assigning a radio to COM 1 sends `ACTIVE_RADIO`. COM 2 is a monitor slot the page remembers,
+  defaulting to the lowest-numbered other radio whose modulation isn't DISABLED or INTERCOM. Two
+  stacked panels, COM 1 with the amber selection border. Each shows the assigned
   radio's number and `name`, a `TX` (filled) or `RX` (outlined) badge, the **active** frequency
   (large, white), a swap button, the **standby** frequency (amber), `▲`/`▼` to step the standby
   frequency, and a status line with modulation, tuned count, guard (`GRD <freq>` or `GRD OFF`),
@@ -163,7 +167,7 @@ One full page on the 900×900 canvas used by the other extension pages.
 - **Speaker hold:** SRS clears `IsReceiving` 350 ms after the last voice packet, so the page keeps
   a speaker's name on screen for 2 s after it clears, to stop it flickering between words.
 - **Page-side state:** SRS has one selected radio and no standby frequencies. The standby
-  frequencies and the COM 2 assignment live in the page; swap sends `FREQUENCY_SET` with the
+  frequencies and the COM 2 assignment live in the page (COM 1 follows SRS); swap sends `FREQUENCY_SET` with the
   standby value and keeps the old active value as the new standby.
 
 Step size for `▲`/`▼` follows the modulation: 25 kHz for AM/FM. Stepped and typed frequencies are
@@ -215,8 +219,3 @@ pending values (standby), red for alerts, white for key legends.
   names? This decides whether `name` alone is useful enough in Phase 1.
 - Are preset channel names needed? If so, the options are reading SRS's client preset files from
   its install folder or leaving them out.
-- What do COM 1 and COM 2 map to? A candidate: COM 1 follows SRS's `selected` radio (the one
-  push-to-talk transmits on), so assigning a radio to COM 1 sends `ACTIVE_RADIO`; COM 2 is a
-  page-side monitor slot.
-- Which band does the scope show when a COM head is on a VHF radio? Options: switch the scope to
-  that head's band, or stack a VHF scope under the UHF one.
