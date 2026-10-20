@@ -204,8 +204,8 @@ button:disabled { cursor: default; opacity: 0.35; }
 
 /* Wide canvas (at least 1440 wide, for a short, wide pane): both layouts keep their top-to-bottom order
    and stretch across the width. Compact's selected head becomes one strip over rows whose columns spread
-   across the width. Dual band puts the PTT and MON heads
-   side by side under the scope, over the radio buttons in five columns that share the extra height. */
+   across the width. Dual band puts the PTT and MON heads side by side under the scope, over the
+   radio buttons in five columns that share the extra height. */
 .wide #cpt { flex-direction: row; align-items: center; gap: 32px; padding: 14px 28px; }
 .wide #cpt .com-top { flex-direction: column; align-items: flex-start; gap: 10px; }
 .wide #cpt .com-mid { flex: 1; gap: 24px; }

@@ -173,8 +173,7 @@ such as two stacked on a vertical monitor), a wide canvas (1440–1800 wide, at 
 over. Both layouts keep their top-to-bottom order and stretch across the width: compact's selected
 head becomes one strip over the same rows with their columns spread across the width; dual band puts
 the PTT and MON heads side by side under the scope, over the radio buttons in five columns that
-share the extra height. Designed on the "SRS compact: three
-designs for a wide pane" canvas (A for compact, C adapted for dual band).
+share the extra height.
 
 - **Compact:** the selected radio's head (the same head as PTT below, titled `SELECTED`), then one
   row per radio: TX/RX lamp, `R<n>`, frequency, the speaker (`◄ <SentBy>`) or `► YOU`, players

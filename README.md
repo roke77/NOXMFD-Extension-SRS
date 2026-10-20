@@ -35,7 +35,7 @@ local state broadcast, so it doesn't modify NOXMFD or SRS.
 
 ## Features
 
-- **Two layouts**, switched with the switch top right. Both fit square panes and tall ones:
+- **Two layouts**, switched with the switch top right. Both fit square, tall and wide panes:
   - **Compact** (the default): the selected radio's head, then a row per radio with its frequency,
     who's talking, players tuned, and a MUTE button. Tap a row to select that radio.
   - **Dual band**: the band scope and two radio heads below.
