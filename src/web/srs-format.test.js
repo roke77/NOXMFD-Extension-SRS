@@ -100,7 +100,15 @@ assert.strictEqual(tallFit.portrait, true);
 assert.strictEqual(tallFit.W, 640);
 assert.strictEqual(Math.round(tallFit.H * tallFit.s), 1090);
 assert.strictEqual(F.fitCanvas(702, 900, 1160).portrait, false);  // slightly tall: dual draws bigger square
-assert.deepStrictEqual(F.fitCanvas(1000, 800, 900), { portrait: false, s: 800 / 900, W: 900, H: 900 });
+assert.deepStrictEqual(F.fitCanvas(1000, 800, 900, 600), { portrait: false, wide: false, s: 800 / 900, W: 900, H: 900 });
+// Wide: only in a clearly wide pane where it draws bigger; it fills the pane's height, to a max width.
+assert.strictEqual(F.fitCanvas(1100, 800, 900, 600).wide, false);  // wide-ish pane: the square draws bigger
+const wideFit = F.fitCanvas(1400, 560, 900, 600);                   // a short, wide MFD pane
+assert.strictEqual(wideFit.wide, true);
+assert.strictEqual(Math.round(wideFit.H * wideFit.s), 560);
+assert.strictEqual(Math.round(wideFit.W * wideFit.s), 1400);
+assert.strictEqual(F.fitCanvas(3000, 500, 900, 600).W, 1800);       // very wide: capped, centred
+assert.strictEqual(F.fitCanvas(1300, 1000, 900, 600).wide, false);  // not 1.2× wider than tall
 
 // Server presets: matched by the radio's name prefix and frequency; channel picks among duplicates.
 const presets = {
