@@ -168,7 +168,10 @@ default; the choice is remembered in the browser. Each is drawn on the 900×900 
 other extension pages, or, in a pane at least 1.2× taller than wide where it draws bigger, on a
 640-wide portrait canvas as tall as the pane (AE3 on the design canvas). In portrait the head
 readouts shrink to fit, the radio buttons go to two columns, and the extra height goes to the radio
-rows or buttons.
+rows or buttons. In a pane at least 1.2× wider than tall where it draws bigger (a short, wide MFD,
+such as two stacked on a vertical monitor), a wide canvas of two columns (1280–1800 wide, 600 tall
+compact or 760 dual band) takes over: compact puts the selected head left and the radio rows right;
+dual band puts the scope across the top, the PTT and MON heads left and the radio buttons right.
 
 - **Compact:** the selected radio's head (the same head as PTT below, titled `SELECTED`), then one
   row per radio: TX/RX lamp, `R<n>`, frequency, the speaker (`◄ <SentBy>`) or `► YOU`, players
