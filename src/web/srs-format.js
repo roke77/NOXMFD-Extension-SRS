@@ -127,12 +127,13 @@
 
   // The canvas for a w×h pane (after the side insets): the 900×900 square, or, in a pane at least
   // 1.2× taller than wide where it draws bigger, the 640-wide portrait canvas as tall as the pane, or,
-  // in a pane at least 1.2× wider than tall where it draws bigger, the wide canvas: two columns, at
-  // least WIDE_MIN_W wide and wideH tall, stretched to the pane's aspect up to WIDE_MAX_W. minH is
-  // what the layout needs at 640 wide. s is the scale, W×H the canvas size.
-  const WIDE_MIN_W = 1280, WIDE_MAX_W = 1800;
-  function fitCanvas(w, h, minH, wideH) {
-    const square = Math.min(w, h) / 900, tall = Math.min(w / 640, h / minH), wide = Math.min(w / WIDE_MIN_W, h / wideH);
+  // in a pane at least 1.2× wider than tall where it draws bigger, the wide canvas: the same top-to-bottom
+  // pages with their rows and bands stretched across the width, at least WIDE_MIN_W × WIDE_MIN_H and
+  // stretched to the pane's aspect up to WIDE_MAX_W. minH is what the layout needs at 640 wide. s is
+  // the scale, W×H the canvas size.
+  const WIDE_MIN_W = 1440, WIDE_MIN_H = 700, WIDE_MAX_W = 1800;
+  function fitCanvas(w, h, minH) {
+    const square = Math.min(w, h) / 900, tall = Math.min(w / 640, h / minH), wide = Math.min(w / WIDE_MIN_W, h / WIDE_MIN_H);
     if (h >= w * 1.2 && tall > square) return { portrait: true, wide: false, s: tall, W: 640, H: h / tall };
     if (w >= h * 1.2 && wide > square) return { portrait: false, wide: true, s: wide, W: Math.min(WIDE_MAX_W, w / wide), H: h / wide };
     return { portrait: false, wide: false, s: square, W: 900, H: 900 };

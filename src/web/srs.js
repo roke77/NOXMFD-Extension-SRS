@@ -13,17 +13,16 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 
 // ── canvas fit ──────────────────────────────────────────────────────────────────────────────
 // The 900×900 square, in a tall pane the 640-wide portrait canvas (AE3 on the design canvas), or in
-// a wide pane the two-column wide canvas; F.fitCanvas picks. The minimum heights are what each
-// layout needs: at 640 wide for portrait, and for the wide canvas's columns.
+// a wide pane the wide canvas (the same pages stretched across the width); F.fitCanvas picks. The
+// portrait minimum heights are what each layout needs at 640 wide.
 const PORTRAIT_MIN_H = { compact: 900, dual: 1160 };
-const WIDE_H = { compact: 600, dual: 760 };
 // The shell's vertical MAIN label sits on one side edge (either, depending on the pane), so both
 // sides keep the TGT page's inset: clamp(34px, 5vw, 48px).
 const sideInset = () => Math.min(48, Math.max(34, innerWidth * 0.05));
 let portrait = false, wide = false, stageW = 900;
 function fitStage() {
   const was = scopeW();
-  const c = F.fitCanvas(innerWidth - 2 * sideInset(), innerHeight, PORTRAIT_MIN_H[layout], WIDE_H[layout]);
+  const c = F.fitCanvas(innerWidth - 2 * sideInset(), innerHeight, PORTRAIT_MIN_H[layout]);
   ({ portrait, wide } = c);
   stageW = c.W;
   const st = $('stage');
@@ -75,7 +74,7 @@ function setStandby(i, hz) {
 const X0 = 20, BASE = 120, BAR_MAX = 84, PX_PER_CLIENT = 6;
 // The scope's viewBox width on each canvas: the stage's inner width less the scope box's padding
 // (the wide canvas gives the scope the full width).
-const scopeW = () => (portrait ? 568 : wide ? Math.round(stageW - 72) : 844);
+const scopeW = () => (portrait ? 568 : wide ? Math.round(stageW - 74) : 844);
 
 function scopeSvg(v) {
   const band = v.band, X1 = scopeW() - 20;

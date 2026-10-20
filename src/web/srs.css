@@ -178,7 +178,7 @@ button:disabled { cursor: default; opacity: 0.35; }
 .row-pick .rn { width: 44px; text-align: left; }
 /* One width for frequencies and preset names, so the speaker column lines up down the rows. */
 .row-pick .f { flex: 0 0 auto; width: 180px; text-align: left; color: var(--no-white); }
-.portrait .row-pick .f, .wide .row-pick .f { width: 140px; }
+.portrait .row-pick .f { width: 140px; }
 .row.off .row-pick .f { color: var(--no-white-dark); }
 .row-pick .rad-who { flex: 1; max-width: none; text-align: left; font-size: 16px; }
 .row-pick .tun { font-size: 14px; color: var(--no-green-dim); }
@@ -188,13 +188,8 @@ button:disabled { cursor: default; opacity: 0.35; }
 .lamp.tx { background: var(--no-green); }
 .lamp.rx { background: none; border: 2px solid var(--no-green); }
 
-/* Dual band's two groups: the PTT and MON heads, and the radio buttons with their header. They stack
-   on the square and portrait canvases and sit in columns on the wide one. */
-.heads, .radios { display: flex; flex-direction: column; gap: 14px; }
-.radios { flex: 1; min-height: 0; }
-
-/* Portrait canvas (640 wide, AE3) and each column of the wide canvas: the heads' readouts shrink to
-   fit the width, and the radio buttons go to two columns that share the extra height. */
+/* Portrait canvas (640 wide, AE3) and the wide canvas's dual band heads: the heads' readouts shrink to
+   fit the width. Portrait also puts the radio buttons in two columns that share the extra height. */
 .portrait, .wide { padding: 24px; }
 .portrait #scope, .wide #scope { width: 100%; height: 150px; }
 .portrait .com, .wide .com { padding: 16px 18px; }
@@ -204,19 +199,29 @@ button:disabled { cursor: default; opacity: 0.35; }
 .portrait .sby-v, .wide .sby-v { font-size: 34px; }
 .portrait .steps button, .wide .steps button { width: 52px; height: 44px; }
 .portrait .vol, .wide .vol { width: 120px; }
-.portrait .rads, .wide .rads { flex: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(64px, 1fr); }
+.portrait .rads { flex: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(64px, 1fr); }
 .portrait .rad, .wide .rad { height: auto; }
 
-/* Wide canvas (at least 1280 wide, for a short, wide pane): the stage splits into two columns. Compact
-   puts the selected head left and the radio rows right; dual band puts the scope across the top, the
-   heads left and the radio buttons right. The columns share the canvas height, so the heads spread
-   their top, readout and foot rows over it. */
-.wide .view:not([hidden]) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto minmax(0, 1fr); }
-.wide #cpt { grid-column: 1; grid-row: 1 / 3; justify-content: space-between; }
-.wide #compact .rads-head, .wide #rows { grid-column: 2; }
+/* Wide canvas (at least 1440 wide, for a short, wide pane): both layouts keep their top-to-bottom order
+   and stretch across the width. Compact's selected head becomes one strip over rows whose columns spread
+   across the width. Dual band puts the PTT and MON heads
+   side by side under the scope, over the radio buttons in five columns that share the extra height. */
+.wide #cpt { flex-direction: row; align-items: center; gap: 32px; padding: 14px 28px; }
+.wide #cpt .com-top { flex-direction: column; align-items: flex-start; gap: 10px; }
+.wide #cpt .com-mid { flex: 1; gap: 24px; }
+.wide #cpt .act-f { font-size: 56px; }
+.wide #cpt .swap { width: 60px; height: 60px; }
+.wide #cpt .sby-v { font-size: 40px; }
+.wide #cpt .steps { flex-direction: row; }
+.wide #cpt .steps button { width: 56px; height: 48px; }
+.wide #cpt .com-foot { flex-direction: column; align-items: flex-end; gap: 8px; min-height: 0; }
 .wide .row { flex-basis: 40px; }
-.wide .scope { grid-column: 1 / 3; }
-.wide .heads { grid-column: 1; }
-.wide .heads .com { flex: 1; justify-content: space-between; }
-.wide .radios { grid-column: 2; }
-.wide .rads { grid-auto-rows: minmax(52px, 1fr); }
+.wide .row-pick {
+  display: grid; grid-template-columns: 24px 64px 220px minmax(0, 1fr) 130px;
+  align-items: center; column-gap: 16px; padding: 0 20px; text-align: left;
+}
+.wide .row-pick .f { width: auto; }
+.wide .row-pick .tun { justify-self: end; }
+.wide #dual:not([hidden]) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto auto auto minmax(0, 1fr); }
+.wide #dual .scope, .wide #dual .rads-head, .wide #dual .rads { grid-column: 1 / 3; }
+.wide .rads { grid-auto-rows: minmax(64px, 1fr); }

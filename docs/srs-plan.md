@@ -169,9 +169,12 @@ other extension pages, or, in a pane at least 1.2× taller than wide where it dr
 640-wide portrait canvas as tall as the pane (AE3 on the design canvas). In portrait the head
 readouts shrink to fit, the radio buttons go to two columns, and the extra height goes to the radio
 rows or buttons. In a pane at least 1.2× wider than tall where it draws bigger (a short, wide MFD,
-such as two stacked on a vertical monitor), a wide canvas of two columns (1280–1800 wide, 600 tall
-compact or 760 dual band) takes over: compact puts the selected head left and the radio rows right;
-dual band puts the scope across the top, the PTT and MON heads left and the radio buttons right.
+such as two stacked on a vertical monitor), a wide canvas (1440–1800 wide, at least 700 tall) takes
+over. Both layouts keep their top-to-bottom order and stretch across the width: compact's selected
+head becomes one strip over the same rows with their columns spread across the width; dual band puts
+the PTT and MON heads side by side under the scope, over the radio buttons in five columns that
+share the extra height. Designed on the "SRS compact: three
+designs for a wide pane" canvas (A for compact, C adapted for dual band).
 
 - **Compact:** the selected radio's head (the same head as PTT below, titled `SELECTED`), then one
   row per radio: TX/RX lamp, `R<n>`, frequency, the speaker (`◄ <SentBy>`) or `► YOU`, players
