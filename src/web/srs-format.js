@@ -125,17 +125,14 @@
     return hit ? String(hit.Name) : null;
   }
 
-  // The canvas for a w×h pane (after the side insets): the 900×900 square, or, in a pane at least
-  // 1.2× taller than wide where it draws bigger, the 640-wide portrait canvas as tall as the pane, or,
-  // in a pane at least 1.2× wider than tall where it draws bigger, the wide canvas: two columns, at
-  // least WIDE_MIN_W wide and wideH tall, stretched to the pane's aspect up to WIDE_MAX_W. minH is
-  // what the layout needs at 640 wide. s is the scale, W×H the canvas size.
-  const WIDE_MIN_W = 1280, WIDE_MAX_W = 1800;
-  function fitCanvas(w, h, minH, wideH) {
-    const square = Math.min(w, h) / 900, tall = Math.min(w / 640, h / minH), wide = Math.min(w / WIDE_MIN_W, h / wideH);
-    if (h >= w * 1.2 && tall > square) return { portrait: true, wide: false, s: tall, W: 640, H: h / tall };
-    if (w >= h * 1.2 && wide > square) return { portrait: false, wide: true, s: wide, W: Math.min(WIDE_MAX_W, w / wide), H: h / wide };
-    return { portrait: false, wide: false, s: square, W: 900, H: 900 };
+  // The canvas for a w×h pane (after the side insets): the 900×900 square, or the 640-wide portrait
+  // canvas as tall as the pane when the pane is at least 1.2× taller than wide and portrait draws
+  // bigger. minH is what the layout needs at 640 wide. s is the scale, W×H the canvas size.
+  function fitCanvas(w, h, minH) {
+    const square = Math.min(w, h) / 900, tall = Math.min(w / 640, h / minH);
+    return h >= w * 1.2 && tall > square
+      ? { portrait: true, s: tall, W: 640, H: h / tall }
+      : { portrait: false, s: square, W: 900, H: 900 };
   }
 
   // A tap at `x` along a bar `width` wide → volume 0..1, in 5% steps.

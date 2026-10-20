@@ -12,27 +12,23 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ── canvas fit ──────────────────────────────────────────────────────────────────────────────
-// The 900×900 square, in a tall pane the 640-wide portrait canvas (AE3 on the design canvas), or in
-// a wide pane the two-column wide canvas; F.fitCanvas picks. The minimum heights are what each
-// layout needs: at 640 wide for portrait, and for the wide canvas's columns.
+// The 900×900 square or, in a tall pane, the 640-wide portrait canvas (AE3 on the design canvas);
+// F.fitCanvas picks. The portrait minimum heights are what each layout needs at 640 wide.
 const PORTRAIT_MIN_H = { compact: 900, dual: 1160 };
-const WIDE_H = { compact: 600, dual: 760 };
 // The shell's vertical MAIN label sits on one side edge (either, depending on the pane), so both
 // sides keep the TGT page's inset: clamp(34px, 5vw, 48px).
 const sideInset = () => Math.min(48, Math.max(34, innerWidth * 0.05));
-let portrait = false, wide = false, stageW = 900;
+let portrait = false;
 function fitStage() {
-  const was = scopeW();
-  const c = F.fitCanvas(innerWidth - 2 * sideInset(), innerHeight, PORTRAIT_MIN_H[layout], WIDE_H[layout]);
-  ({ portrait, wide } = c);
-  stageW = c.W;
+  const was = portrait;
+  const { s, W, H, portrait: p } = F.fitCanvas(innerWidth - 2 * sideInset(), innerHeight, PORTRAIT_MIN_H[layout]);
+  portrait = p;
   const st = $('stage');
   st.classList.toggle('portrait', portrait);
-  st.classList.toggle('wide', wide);
-  st.style.width = c.W + 'px';
-  st.style.height = c.H + 'px';
-  st.style.transform = `translate(${(innerWidth - c.W * c.s) / 2}px, ${(innerHeight - c.H * c.s) / 2}px) scale(${c.s})`;
-  if (scopeW() !== was) rerender(); // the scope's geometry follows the canvas width
+  st.style.width = W + 'px';
+  st.style.height = H + 'px';
+  st.style.transform = `translate(${(innerWidth - W * s) / 2}px, ${(innerHeight - H * s) / 2}px) scale(${s})`;
+  if (portrait !== was) rerender(); // the scope's geometry follows the canvas width
 }
 
 // ── page state ──────────────────────────────────────────────────────────────────────────────
@@ -73,9 +69,7 @@ function setStandby(i, hz) {
 
 // ── band scope ──────────────────────────────────────────────────────────────────────────────
 const X0 = 20, BASE = 120, BAR_MAX = 84, PX_PER_CLIENT = 6;
-// The scope's viewBox width on each canvas: the stage's inner width less the scope box's padding
-// (the wide canvas gives the scope the full width).
-const scopeW = () => (portrait ? 568 : wide ? Math.round(stageW - 72) : 844);
+const scopeW = () => (portrait ? 568 : 844); // the scope's viewBox width on each canvas
 
 function scopeSvg(v) {
   const band = v.band, X1 = scopeW() - 20;
