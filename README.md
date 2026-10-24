@@ -100,10 +100,8 @@ Restart the game after changing any of these.
 
 ## Links
 
-- [Releases and changelog](https://github.com/roke77/NOXMFD-Extension-SRS/releases)
 - [NOXMFD](https://github.com/roke77/NOXMFD): the browser MFD this page runs in
 - [SRS](https://github.com/ciribob/DCS-SimpleRadioStandalone): the radio client this page reads
-- [Design and roadmap](docs/srs-plan.md)
 
 ---
 
