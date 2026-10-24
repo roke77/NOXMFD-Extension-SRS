@@ -27,7 +27,6 @@ local state broadcast, so it doesn't modify NOXMFD or SRS.
 - [Installing](#installing)
 - [Settings](#settings)
 - [Links](#links)
-- [What's here](#whats-here)
 - [Building](#building)
 - [Credits](#credits)
 
@@ -105,21 +104,6 @@ Restart the game after changing any of these.
 - [NOXMFD](https://github.com/roke77/NOXMFD): the browser MFD this page runs in
 - [SRS](https://github.com/ciribob/DCS-SimpleRadioStandalone): the radio client this page reads
 - [Design and roadmap](docs/srs-plan.md)
-
----
-
-## What's here
-
-- `src/plugin/Plugin.cs` registers the **SRS** EXT page and publishes SRS's latest state.
-- `src/plugin/SrsListener.cs` receives SRS's state packets on UDP 127.0.0.1:7082.
-- `src/plugin/SrsCommands.cs` takes the page's commands and sends them to SRS on UDP 9040;
-  `SrsCommandMap.cs` is the allow-list, checked by `dotnet run --project tools/cmdcheck`.
-- `src/plugin/SrsPageAssets.cs` serves the embedded `src/web/` files.
-- `src/web/srs.{html,css,js}` is the page; `srs-format.js` holds its pure helpers, checked by
-  `node src/web/srs-format.test.js`.
-- `docs/samples/` holds captured SRS packets; `tools/preview.py` previews the page in a browser
-  with them.
-- `lib/NOXMFD.dll` is a compile-time reference only, not shipped to players.
 
 ---
 
