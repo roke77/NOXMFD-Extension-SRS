@@ -19,8 +19,11 @@ const PORTRAIT_MIN_H = { compact: 900, dual: 1160 };
 let portrait = false, wide = false, stageW = 900;
 function fitStage() {
   const was = scopeW();
-  const pad = parseFloat(getComputedStyle(document.body).paddingTop) || 0;   // srs.css: TGT's margin
-  const c = F.fitCanvas(innerWidth - 2 * pad, innerHeight - 2 * pad, PORTRAIT_MIN_H[layout]);
+  // The canvas fits below the header (srs.css .head, in screen pixels) inside TGT's margin.
+  const pad = parseFloat(getComputedStyle(document.body).paddingTop) || 0;
+  const head = $('head');
+  const top = head.getBoundingClientRect().bottom + (parseFloat(getComputedStyle(head).marginBottom) || 0);
+  const c = F.fitCanvas(innerWidth - 2 * pad, innerHeight - top - pad, PORTRAIT_MIN_H[layout]);
   ({ portrait, wide } = c);
   stageW = c.W;
   const st = $('stage');
@@ -28,7 +31,7 @@ function fitStage() {
   st.classList.toggle('wide', wide);
   st.style.width = c.W + 'px';
   st.style.height = c.H + 'px';
-  st.style.transform = `translate(${(innerWidth - c.W * c.s) / 2}px, ${(innerHeight - c.H * c.s) / 2}px) scale(${c.s})`;
+  st.style.transform = `translate(${(innerWidth - c.W * c.s) / 2}px, ${top + (innerHeight - top - pad - c.H * c.s) / 2}px) scale(${c.s})`;
   if (scopeW() !== was) rerender(); // the scope's geometry follows the canvas width
 }
 
@@ -328,7 +331,7 @@ function step(n, dir) {
   rerender();
 }
 
-$('stage').addEventListener('click', (e) => {
+document.addEventListener('click', (e) => {   // the canvas and the header's layout toggle
   if (e.target.closest('#keypad')) return;
   const el = e.target.closest('[data-act]');
   if (!el || el.disabled) return;
@@ -394,6 +397,7 @@ function onSlice(d) {
 
 addEventListener('resize', fitStage);
 fitStage();
+document.fonts.ready.then(fitStage);   // the header's height, which places the canvas, follows the font
 showLayout();
 render(null, 'WAITING FOR SRS', false);
 const source = new TelemetrySource({ onFrame: onSlice, onNoMission: (didEnd, ping) => onSlice(ping) });

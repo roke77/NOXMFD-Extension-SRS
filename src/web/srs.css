@@ -41,30 +41,40 @@ button:disabled { cursor: default; opacity: 0.35; }
 .dim { color: var(--no-green-dim); }
 .lbl { font-size: 12px; color: var(--no-green-dim); letter-spacing: 3px; }
 
-/* Header: the TGT page's title style. */
-.head { display: flex; align-items: center; gap: 16px; }
-.title { font-size: 22px; letter-spacing: 0.08em; }
-.status { font-size: 12px; color: var(--no-green-dim); }
+/* Header: ATC's title row (atc.css .atc-head), outside the scaled canvas and in screen pixels so it
+   matches the other pages at every scale. fitStage fits the canvas below it. */
+.head {
+  display: flex; align-items: baseline; gap: 12px;
+  border-bottom: 1px solid var(--no-green-dark);
+  padding-bottom: clamp(2px, 0.8vh, 8px);
+  margin-bottom: clamp(6px, 1.6vh, 14px);
+  text-transform: uppercase;
+}
+.title { font-size: clamp(14px, 3.2vmin, 26px); font-weight: bold; letter-spacing: 0.2em; white-space: nowrap; }
+.status {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: clamp(9px, 1.5vmin, 13px); letter-spacing: 0.15em; color: var(--no-control-text-off);
+}
 .status.bad { color: var(--no-red); }
 
-/* Layout toggle, top right: NOXMFD's AKF/TGT density switch (akf.css .akf-density-toggle), sized
-   for this canvas. The knob slides to the active layout and that label brightens. */
-.layout-tog { margin-left: auto; height: 36px; gap: 8px; font-size: 13px; letter-spacing: 0.08em; white-space: nowrap; }
+/* Layout toggle, top right: NOXMFD's AKF/TGT density switch (akf.css .akf-density-toggle) at its
+   sizes. The knob slides to the active layout and that label brightens. */
+.layout-tog { margin-left: auto; align-self: center; gap: 6px; font-size: clamp(8px, 1.3vmin, 10px); letter-spacing: 0.08em; white-space: nowrap; }
 .lt-l, .lt-r { color: var(--no-green-dim); }
 .layout-tog:not(.dual) .lt-l, .layout-tog.dual .lt-r { color: var(--no-green); }
 .lt-sw {
-  position: relative; flex: 0 0 auto; width: 36px; height: 18px;
-  border: 1px solid var(--no-green-dark); border-radius: 9px; background: rgba(255, 255, 255, 0.04);
+  position: relative; flex: 0 0 auto; width: 28px; height: 14px;
+  border: 1px solid var(--no-green-dark); border-radius: 7px; background: rgba(255, 255, 255, 0.04);
 }
 .lt-knob {
-  position: absolute; top: 1px; left: 1px; width: 14px; height: 14px; border-radius: 50%;
+  position: absolute; top: 1px; left: 1px; width: 10px; height: 10px; border-radius: 50%;
   background: var(--no-green-dim); transition: transform 0.12s ease, background 0.12s ease;
 }
-.layout-tog.dual .lt-knob { transform: translateX(18px); background: var(--no-green); }
+.layout-tog.dual .lt-knob { transform: translateX(14px); background: var(--no-green); }
 .layout-tog:hover .lt-knob { background: var(--no-green); }
 .layout-tog:not(:disabled):active { background: none; }
 
-/* Each layout fills the stage below the header; its radio list takes any extra height. */
+/* Each layout fills the stage; its radio list takes any extra height. */
 .view { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
 .view[hidden] { display: none; }
 
