@@ -19,7 +19,8 @@ const PORTRAIT_MIN_H = { compact: 900, dual: 1160 };
 let portrait = false, wide = false, stageW = 900;
 function fitStage() {
   const was = scopeW();
-  const c = F.fitCanvas(innerWidth, innerHeight, PORTRAIT_MIN_H[layout]);
+  const pad = parseFloat(getComputedStyle(document.body).paddingTop) || 0;   // srs.css: TGT's margin
+  const c = F.fitCanvas(innerWidth - 2 * pad, innerHeight - 2 * pad, PORTRAIT_MIN_H[layout]);
   ({ portrait, wide } = c);
   stageW = c.W;
   const st = $('stage');
@@ -69,9 +70,9 @@ function setStandby(i, hz) {
 
 // ── band scope ──────────────────────────────────────────────────────────────────────────────
 const X0 = 20, BASE = 120, BAR_MAX = 84, PX_PER_CLIENT = 6;
-// The scope's viewBox width on each canvas: the stage's inner width less the scope box's padding
-// (the wide canvas gives the scope the full width).
-const scopeW = () => (portrait ? 568 : wide ? Math.round(stageW - 74) : 844);
+// The scope's viewBox width: the canvas width less the scope box's padding and border (srs.css
+// .scope), so it draws 1:1 on every canvas.
+const scopeW = () => Math.round(stageW - 26);
 
 function scopeSvg(v) {
   const band = v.band, X1 = scopeW() - 20;
