@@ -10,7 +10,9 @@ namespace SrsModule
     // the page's slice, and forwards the page's commands to SRS through SrsCommands
     // (docs/srs-plan.md).
     [BepInPlugin("com.roque.srs-module", "NOXMFD: SRS Extension", MyPluginInfo.PLUGIN_VERSION)]
-    [BepInDependency("com.roque.NOXMFD", "0.59.0")]
+    // 0.78.0's layouts keep their labels clear of extension pages; the page has no side inset of its
+    // own, so an older NOXMFD would draw its labels over the canvas.
+    [BepInDependency("com.roque.NOXMFD", "0.78.0")]
     [BepInProcess("NuclearOption.exe")]
     public class Plugin : BaseUnityPlugin
     {

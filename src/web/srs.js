@@ -16,13 +16,10 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 // a wide pane the wide canvas (the same pages stretched across the width); F.fitCanvas picks. The
 // portrait minimum heights are what each layout needs at 640 wide.
 const PORTRAIT_MIN_H = { compact: 900, dual: 1160 };
-// The shell's vertical MAIN label sits on one side edge (either, depending on the pane), so both
-// sides keep the TGT page's inset: clamp(34px, 5vw, 48px).
-const sideInset = () => Math.min(48, Math.max(34, innerWidth * 0.05));
 let portrait = false, wide = false, stageW = 900;
 function fitStage() {
   const was = scopeW();
-  const c = F.fitCanvas(innerWidth - 2 * sideInset(), innerHeight, PORTRAIT_MIN_H[layout]);
+  const c = F.fitCanvas(innerWidth, innerHeight, PORTRAIT_MIN_H[layout]);
   ({ portrait, wide } = c);
   stageW = c.W;
   const st = $('stage');
