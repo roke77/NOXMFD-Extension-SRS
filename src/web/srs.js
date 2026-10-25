@@ -381,22 +381,20 @@ $('kp-cancel').addEventListener('click', closeKeypad);
 $('kp-enter').addEventListener('click', kpEnter);
 
 // ── telemetry ───────────────────────────────────────────────────────────────────────────────
-function onFrame(d) {
-  const s = d.ext && d.ext.srs;
+// SRS runs apart from the game, so the page follows its slice wherever it arrives: real frames and
+// the ping NOXMFD sends with nothing spawned (main menu, spawn screen). Whether SRS itself is live
+// is the slice's own `ok` (show).
+function onSlice(d) {
+  const s = d && d.ext && d.ext.srs;
   if (!s) return;
   lastState = s;
   show(s);
 }
 
-function onNoMission() {
-  lastState = null;
-  render(null, 'WAITING FOR MISSION', false);
-}
-
 addEventListener('resize', fitStage);
 fitStage();
 showLayout();
-render(null, 'WAITING FOR MISSION', false);
-const source = new TelemetrySource({ onFrame, onNoMission });
+render(null, 'WAITING FOR SRS', false);
+const source = new TelemetrySource({ onFrame: onSlice, onNoMission: (didEnd, ping) => onSlice(ping) });
 source.connect();
 addEventListener('pagehide', () => source.disconnect());

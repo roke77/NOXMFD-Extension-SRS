@@ -280,6 +280,22 @@ pending values (standby), red for alerts, white for key legends.
    control is checked in the preview.
 3. **Live check** of every command against SRS's overlay, in the game.
 
+### Independent of the spawn
+
+The page depends on SRS alone: it shows the radios at the main menu, on the spawn screen and while
+unspawned, so cycling radios with an SRS keybind always shows which one transmits. Before this,
+NOXMFD sent extension slices only in real telemetry frames, which need a local aircraft, and the
+page sat on WAITING FOR MISSION without one.
+
+1. **NOXMFD 0.80.0** puts the extension slices in its no-aircraft ping too (`TelemetryJson.Ping`)
+   and hands the ping to `TelemetrySource`'s `onNoMission(didEnd, ping)`.
+2. **The page** reads `ext.srs` from frames and pings alike, with no mission gate; the slice's own
+   `ok`/`reason` say whether SRS is live. `Plugin.cs` already publishes from `Update` regardless of
+   the game's state, and NOXMFD drains extension commands at the main menu, so the controls work
+   there too.
+3. **Live check**: the page and its controls at the main menu, on the spawn screen, after a respawn
+   and across a mission end.
+
 ## Releases
 
 - GitHub releases only; the extension is not listed in NOMM (the NOMNOM registry).
