@@ -4,7 +4,8 @@
 
 Serves /ext/srs/* from this repo's src/web, /assets/shared|services/* from a NOXMFD checkout
 (default: a sibling ../NOXMFD), and a mock /stream whose frames carry an ext.srs slice built like
-Plugin.BuildSlice. GET /scenario?s=<name> switches what the stream sends:
+Plugin.BuildSlice. GET /scenario?s=<name>&spawned=0|1 switches what the stream sends; spawned=0 sends
+NOXMFD's no-aircraft ping (main menu, spawn screen), which carries the slice too:
   idle, tx          the captured packets in docs/samples/
   rx                idle with R1 receiving VIPER 1-1
   busy              AE2's mockup data: PTT on R2 transmitting, R1 and R5 receiving, players
@@ -13,7 +14,7 @@ Plugin.BuildSlice. GET /scenario?s=<name> switches what the stream sends:
   live              real SRS packets from UDP 127.0.0.1:7082 (don't run the game at the same time),
                     plus the preset list fetched from the SRS client's LastServer like SrsPresets
   unknown           a packet shape the page doesn't recognise
-  no-data, port-busy, stale, nomission
+  no-data, port-busy, stale
 POST /ext/srs/command is checked like SrsCommandMap.cs; in live mode the datagram goes to the real
 SRS on UDP 9040, otherwise a rough simulation applies it to the mock. GET /commands lists them.
 GET /shot?layout=compact|dual switches to busy, seeds the page's own saved state (standby
@@ -50,7 +51,7 @@ BUSY["RadioSendingState"] = {"IsSending": True, "SendingOn": 2, "IsEncrypted": 0
 BUSY["TunedClients"] = [0, 14, 4, 0, 9, 2, 0, 2, 0, 2, 2]
 BUSY["ClientCountConnected"] = 23
 
-state = {"s": "idle"}
+state = {"s": "idle", "spawned": True}
 live = {"packet": None, "at": 0.0, "error": None}
 MOCKS = {"idle": SAMPLES["idle"], "tx": SAMPLES["tx"], "rx": RX, "busy": BUSY, "presets": BUSY}
 # The server's SERVER_PRESETS setting for the presets scenario (the slice carries it as a string).
@@ -174,7 +175,9 @@ class H(BaseHTTPRequestHandler):
         if path.startswith("/assets/services/"):
             return self._file(NOX / "services" / path[len("/assets/services/"):])
         if path == "/scenario":
-            state["s"] = parse_qs(u.query).get("s", [state["s"]])[0]
+            q = parse_qs(u.query)
+            state["s"] = q.get("s", [state["s"]])[0]
+            if "spawned" in q: state["spawned"] = q["spawned"] != ["0"]
             if state["s"] == "live" and not live.get("thread"):
                 live["thread"] = threading.Thread(target=listen_live, daemon=True)
                 live["thread"].start()
@@ -189,10 +192,9 @@ class H(BaseHTTPRequestHandler):
             self.end_headers()
             try:
                 while True:
-                    if state["s"] == "nomission":
-                        frame = {"ping": True, "missionRunning": False}
-                    else:
-                        frame = {"ext": {"srs": slice_for(state["s"])}}
+                    frame = {"ext": {"srs": slice_for(state["s"])}}
+                    if not state["spawned"]:
+                        frame.update(ping=True, missionRunning=False)
                     self.wfile.write(("data: " + json.dumps(frame) + "\n\n").encode())
                     self.wfile.flush()
                     time.sleep(0.1)

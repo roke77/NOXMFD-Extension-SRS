@@ -19,7 +19,11 @@ const PORTRAIT_MIN_H = { compact: 900, dual: 1160 };
 let portrait = false, wide = false, stageW = 900;
 function fitStage() {
   const was = scopeW();
-  const c = F.fitCanvas(innerWidth, innerHeight, PORTRAIT_MIN_H[layout]);
+  // The canvas fits below the header (srs.css .head, in screen pixels) inside TGT's margin.
+  const pad = parseFloat(getComputedStyle(document.body).paddingTop) || 0;
+  const head = $('head');
+  const top = head.getBoundingClientRect().bottom + (parseFloat(getComputedStyle(head).marginBottom) || 0);
+  const c = F.fitCanvas(innerWidth - 2 * pad, innerHeight - top - pad, PORTRAIT_MIN_H[layout]);
   ({ portrait, wide } = c);
   stageW = c.W;
   const st = $('stage');
@@ -27,7 +31,7 @@ function fitStage() {
   st.classList.toggle('wide', wide);
   st.style.width = c.W + 'px';
   st.style.height = c.H + 'px';
-  st.style.transform = `translate(${(innerWidth - c.W * c.s) / 2}px, ${(innerHeight - c.H * c.s) / 2}px) scale(${c.s})`;
+  st.style.transform = `translate(${(innerWidth - c.W * c.s) / 2}px, ${top + (innerHeight - top - pad - c.H * c.s) / 2}px) scale(${c.s})`;
   if (scopeW() !== was) rerender(); // the scope's geometry follows the canvas width
 }
 
@@ -69,9 +73,9 @@ function setStandby(i, hz) {
 
 // ── band scope ──────────────────────────────────────────────────────────────────────────────
 const X0 = 20, BASE = 120, BAR_MAX = 84, PX_PER_CLIENT = 6;
-// The scope's viewBox width on each canvas: the stage's inner width less the scope box's padding
-// (the wide canvas gives the scope the full width).
-const scopeW = () => (portrait ? 568 : wide ? Math.round(stageW - 74) : 844);
+// The scope's viewBox width: the canvas width less the scope box's padding and border (srs.css
+// .scope), so it draws 1:1 on every canvas.
+const scopeW = () => Math.round(stageW - 26);
 
 function scopeSvg(v) {
   const band = v.band, X1 = scopeW() - 20;
@@ -327,7 +331,7 @@ function step(n, dir) {
   rerender();
 }
 
-$('stage').addEventListener('click', (e) => {
+document.addEventListener('click', (e) => {   // the canvas and the header's layout toggle
   if (e.target.closest('#keypad')) return;
   const el = e.target.closest('[data-act]');
   if (!el || el.disabled) return;
@@ -381,22 +385,21 @@ $('kp-cancel').addEventListener('click', closeKeypad);
 $('kp-enter').addEventListener('click', kpEnter);
 
 // ── telemetry ───────────────────────────────────────────────────────────────────────────────
-function onFrame(d) {
-  const s = d.ext && d.ext.srs;
+// SRS runs apart from the game, so the page follows its slice wherever it arrives: real frames and
+// the ping NOXMFD sends with nothing spawned (main menu, spawn screen). Whether SRS itself is live
+// is the slice's own `ok` (show).
+function onSlice(d) {
+  const s = d && d.ext && d.ext.srs;
   if (!s) return;
   lastState = s;
   show(s);
 }
 
-function onNoMission() {
-  lastState = null;
-  render(null, 'WAITING FOR MISSION', false);
-}
-
 addEventListener('resize', fitStage);
 fitStage();
+document.fonts.ready.then(fitStage);   // the header's height, which places the canvas, follows the font
 showLayout();
-render(null, 'WAITING FOR MISSION', false);
-const source = new TelemetrySource({ onFrame, onNoMission });
+render(null, 'WAITING FOR SRS', false);
+const source = new TelemetrySource({ onFrame: onSlice, onNoMission: (didEnd, ping) => onSlice(ping) });
 source.connect();
 addEventListener('pagehide', () => source.disconnect());

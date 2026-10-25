@@ -1,6 +1,6 @@
 # NOXMFD Extension: SRS
 
-[![NOXMFD](https://img.shields.io/badge/Requires-NOXMFD%200.78.0%2B-blue)](https://github.com/roke77/NOXMFD)
+[![NOXMFD](https://img.shields.io/badge/Requires-NOXMFD%200.80.0%2B-blue)](https://github.com/roke77/NOXMFD)
 [![SRS](https://img.shields.io/badge/Requires-SRS-lightgrey)](https://github.com/ciribob/DCS-SimpleRadioStandalone)
 [![Version](https://img.shields.io/badge/Version-0.5.0-green)](https://github.com/roke77/NOXMFD-Extension-SRS/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -15,7 +15,7 @@ Built entirely through NOXMFD's public extension API (see
 local state broadcast, so it doesn't modify NOXMFD or SRS.
 
 > [!IMPORTANT]
-> **Install order:** BepInEx 5 → [NOXMFD](https://github.com/roke77/NOXMFD) (≥ 0.78.0) →
+> **Install order:** BepInEx 5 → [NOXMFD](https://github.com/roke77/NOXMFD) (≥ 0.80.0) →
 > **`NOXMFD.SrsModule.dll`**. SRS runs separately, on the same PC, in **External AWACS Mode**.
 
 ---
@@ -61,15 +61,16 @@ local state broadcast, so it doesn't modify NOXMFD or SRS.
 ## Using the page
 
 1. Start SRS and connect to your server in **External AWACS Mode** (EAM).
-2. Start a mission, then open **EXT → SRS** in NOXMFD.
+2. Open **EXT → SRS** in NOXMFD.
 
-The page shows SRS state only while a mission is running; at the main menu it waits.
+The page follows SRS, not the game: it shows your radios whenever SRS is connected, including at the
+main menu and while you're not spawned.
 
 ---
 
 ## Installing
 
-1. Install BepInEx 5 and [NOXMFD](https://github.com/roke77/NOXMFD) 0.78.0 or later.
+1. Install BepInEx 5 and [NOXMFD](https://github.com/roke77/NOXMFD) 0.80.0 or later.
 2. Download `NOXMFD.SrsModule_<version>.zip` from the
    [latest release](https://github.com/roke77/NOXMFD-Extension-SRS/releases/latest) and extract it
    into `BepInEx/plugins/`.
