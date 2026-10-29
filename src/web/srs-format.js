@@ -113,14 +113,15 @@
   // The preset name a radio is on, or null. `presets` is the server's list (normalised radio name →
   // [{Name, Frequency in MHz}]); like SRS, a radio uses the list whose key its own name starts with.
   // A preset matches by frequency; SRS's `channel` (1-based, -1 = none) picks among presets that
-  // share one, when it points at a matching entry.
+  // share one, when it points at a matching entry. Within 1 Hz, not exact: SRS sets the radio to the
+  // preset's MHz × 1e6 in doubles, so 258.28 arrives as 258279999.99999997.
   function presetName(presets, r) {
     if (!presets || typeof presets !== 'object' || !r) return null;
     const n = presetKey(r.name);
     const key = Object.keys(presets).find((k) => k && n.startsWith(k));
     const list = key && Array.isArray(presets[key]) ? presets[key] : null;
     if (!list) return null;
-    const at = (p) => !!p && fin(p.Frequency) && Math.round(p.Frequency * 1e6) === r.freq && p.Name != null;
+    const at = (p) => !!p && fin(p.Frequency) && Math.abs(p.Frequency * 1e6 - r.freq) < 1 && p.Name != null;
     const hit = r.channel > 0 && at(list[r.channel - 1]) ? list[r.channel - 1] : list.find(at);
     return hit ? String(hit.Name) : null;
   }
