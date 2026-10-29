@@ -36,7 +36,10 @@ local state broadcast, so it doesn't modify NOXMFD or SRS.
 
 - **Two layouts**, switched with the switch top right. Both fit square, tall and wide panes:
   - **Compact** (the default): the selected radio's head, then a row per radio with its frequency,
-    who's talking, players tuned, and a MUTE button. Tap a row to select that radio.
+    who's talking, players tuned, and a MUTE button. Tap a row to select that radio. The head
+    shows the radio's preset name large when it's on one, with the frequency under it; ▲▼ step to
+    the next or previous preset (or by 25 kHz off a preset), and tapping the readout types a
+    frequency straight onto the radio.
   - **Dual band**: the band scope and two radio heads below.
 - **Band scope** for PTT's band (UHF AM, VHF AM or VHF FM): a bar for every frequency your radios
   are on, as tall as the number of players tuned to it. A bar glows
@@ -47,7 +50,7 @@ local state broadcast, so it doesn't modify NOXMFD or SRS.
 - **Every radio at a glance:** R1–R10 with frequency and who's talking, `► YOU` while you transmit.
 - **Preset names.** When your SRS server has preset channels, a radio on one shows its name (like
   `ARCHANGEL`) in place of the frequency. See **Server presets** below.
-- **Tune from the page.** Each head has a standby frequency: step it with ▲▼ or tap it to type one
+- **Tune from the page.** In dual band, each head has a standby frequency: step it with ▲▼ or tap it to type one
   on the keypad, then swap it in. Tap a radio to talk on it (it becomes PTT). Tap the VOL bar to
   set the volume. Standby frequencies and your MON radio are remembered in the browser.
 - Follows SRS live: select or retune a radio in SRS's overlay and the page follows.

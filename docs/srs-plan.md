@@ -179,9 +179,14 @@ head becomes one strip over the same rows with their columns spread across the w
 the PTT and MON heads side by side under the scope, over the radio buttons in five columns that
 share the extra height.
 
-- **Compact:** the selected radio's head (the same head as PTT below, titled `SELECTED`), then one
-  row per radio: TX/RX lamp, `R<n>`, frequency, the speaker (`◄ <SentBy>`) or `► YOU`, players
-  tuned, and a `MUTE` button. Tapping a row selects that radio (`ACTIVE_RADIO`). `MUTE` sets the
+- **Compact:** the selected radio's head, then one row per radio. The head has no standby or swap:
+  its top line is `R<n> <name>` and the TX/RX badge; its readout is the radio's preset name (large,
+  white) with the frequency under it when it's on one, else the frequency (large); tapping the
+  readout opens the keypad, whose ENTER sends `FREQUENCY_SET` straight to the radio. `▲`/`▼` step to
+  the next or previous preset in the server's list for that radio, wrapping and skipping presets on
+  its own frequency, or by 25 kHz off a preset, each sending `FREQUENCY_SET`. The status line has
+  players tuned and volume or the speaker; no modulation. Each radio row has: TX/RX lamp, `R<n>`,
+  frequency, the speaker (`◄ <SentBy>`) or `► YOU`, players tuned, and a `MUTE` button. Tapping a row selects that radio (`ACTIVE_RADIO`). `MUTE` sets the
   radio's volume to 0 and shows `MUTED` in red; tapping it again restores the volume it had.
 - **Dual band:** the **AE2 "dual heads with band scope"** design: a band scope on top, two radio
   heads (PTT and MON) with an active and a standby frequency each, and a button per radio at
@@ -191,7 +196,8 @@ share the extra height.
 
 - **Header:** `SRS` top left in NOXMFD green at the TGT page's title size (22 px); beside it, in
   dim green, the connection state (`●` green when connected; `NO SRS DATA` red when no packet has
-  arrived for 1 s), `EAM`, and `ClientCountConnected`; the layout toggle on the right.
+  arrived for 1 s), the player's SRS name (`RadioInfo.name`; SRS's mode, `EAM`, when it's empty),
+  and `ClientCountConnected`; the layout toggle on the right.
 - **Band scope:** one scope showing PTT's band: UHF AM 225–400 MHz, VHF AM 118–137 MHz, or VHF FM
   30–88 MHz. MON's cursors appear only when MON is on the same band. Each frequency in use is a bar whose height is its
   `TunedClients` count; a bar glows while a radio tuned to it is receiving, with the speaker's name
@@ -208,9 +214,9 @@ share the extra height.
   frequency, and a status line with modulation, tuned count,
   and volume or the current speaker.
 - **Keypad entry:** each standby frequency is a button with NOXMFD's keypad glyph beside the value
-  (the same glyph and behavior as the NOAutopilot page); tapping it opens the keypad overlay. It's
-  the only typed entry on the page: active frequencies change only through swap, and volume and
-  `▲`/`▼` step.
+  (the same glyph and behavior as the NOAutopilot page); tapping it opens the keypad overlay. In
+  dual band it's the only typed entry: active frequencies change only through swap, and volume and
+  `▲`/`▼` step. Compact's head types onto the active frequency directly instead.
 - **Radio buttons:** R1–R10 in a 5×2 grid, one per radio whose modulation isn't DISABLED. Line one:
   a TX/RX lamp, `R<n>`, and the frequency in MHz to three decimals. Line two: the speaker
   (`◄ <SentBy>` white) while receiving, `► YOU` (green) while transmitting, or a dim `—`. The

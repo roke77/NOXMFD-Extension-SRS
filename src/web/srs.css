@@ -127,6 +127,13 @@ button:disabled { cursor: default; opacity: 0.35; }
 .who { color: var(--no-white); font-size: 16px; }
 /* The server preset the head's radio is on, beside ACTIVE. */
 .pre-n { color: var(--no-white); font-size: 16px; letter-spacing: 2px; }
+/* Compact's head: the readout is the keypad button, and a preset name, which can be long, reads large
+   with the frequency under it. */
+.tune { flex: 1; min-width: 0; padding: 6px 10px; margin: -6px -10px; border-radius: 4px; }
+.tune .act-f { display: flex; align-items: center; gap: 14px; max-width: 100%; }
+.pre-big { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.act-sub { display: flex; align-items: center; gap: 10px; font-size: 20px; letter-spacing: 2px; color: var(--no-green-dim); }
+.act-sub .kp-ico { width: 18px; height: 18px; }
 /* The VOL bar is a 32 px tall tap target around the thin visible bar. */
 .vol { display: block; width: 160px; height: 32px; padding: 12px 0; }
 .vol > div { height: 8px; background: var(--no-green-dark); border-radius: 2px; }
@@ -221,8 +228,6 @@ button:disabled { cursor: default; opacity: 0.35; }
 .wide #cpt .com-top { flex-direction: column; align-items: flex-start; gap: 10px; }
 .wide #cpt .com-mid { flex: 1; gap: 24px; }
 .wide #cpt .act-f { font-size: 56px; }
-.wide #cpt .swap { width: 60px; height: 60px; }
-.wide #cpt .sby-v { font-size: 40px; }
 .wide #cpt .steps { flex-direction: row; }
 .wide #cpt .steps button { width: 56px; height: 48px; }
 .wide #cpt .com-foot { flex-direction: column; align-items: flex-end; gap: 8px; min-height: 0; }

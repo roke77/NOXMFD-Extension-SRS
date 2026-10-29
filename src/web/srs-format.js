@@ -115,15 +115,34 @@
   // A preset matches by frequency; SRS's `channel` (1-based, -1 = none) picks among presets that
   // share one, when it points at a matching entry. Within 1 Hz, not exact: SRS sets the radio to the
   // preset's MHz × 1e6 in doubles, so 258.28 arrives as 258279999.99999997.
-  function presetName(presets, r) {
+  function presetAt(presets, r) {
     if (!presets || typeof presets !== 'object' || !r) return null;
     const n = presetKey(r.name);
     const key = Object.keys(presets).find((k) => k && n.startsWith(k));
     const list = key && Array.isArray(presets[key]) ? presets[key] : null;
     if (!list) return null;
     const at = (p) => !!p && fin(p.Frequency) && Math.abs(p.Frequency * 1e6 - r.freq) < 1 && p.Name != null;
-    const hit = r.channel > 0 && at(list[r.channel - 1]) ? list[r.channel - 1] : list.find(at);
-    return hit ? String(hit.Name) : null;
+    const i = r.channel > 0 && at(list[r.channel - 1]) ? r.channel - 1 : list.findIndex(at);
+    return i < 0 ? null : { list, i };
+  }
+  function presetName(presets, r) {
+    const p = presetAt(presets, r);
+    return p ? String(p.list[p.i].Name) : null;
+  }
+  // The MHz of the next preset in the radio's list in `dir` (±1), wrapping, from the one it's on;
+  // null when it's on none or no other is in range. Presets on the radio's own frequency are skipped:
+  // tuning to one wouldn't move it.
+  function presetStep(presets, r, dir) {
+    const p = presetAt(presets, r);
+    if (!p) return null;
+    const { list, i } = p, n = list.length;
+    for (let k = 1; k < n; k++) {
+      const q = list[(((i + dir * k) % n) + n) % n];
+      if (!q || !fin(q.Frequency) || Math.abs(q.Frequency * 1e6 - r.freq) < 1) continue;
+      const hz = q.Frequency * 1e6;
+      if (hz >= r.freqMin && hz <= r.freqMax) return q.Frequency;
+    }
+    return null;
   }
 
   // The canvas for a w×h pane (after the side insets): the 900×900 square, or, in a pane at least
@@ -145,7 +164,7 @@
 
   const api = { DASH, MOD, BANDS, HOLD_MS, STEP_HZ, freq, modName, usable, com2Default, isTx,
     speaker, bandFor, scopeX, scopeBars, tunable, clampHz, stepHz, parseMhz, entryError,
-    com2Pick, monStep, fitCanvas, volAt, presetKey, presetName };
+    com2Pick, monStep, fitCanvas, volAt, presetKey, presetName, presetStep };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.SrsFormat = api;
 })(this);

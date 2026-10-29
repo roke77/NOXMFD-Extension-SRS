@@ -129,6 +129,13 @@ assert.strictEqual(F.presetName(presets, { ...radios[1], name: 'UHF', freq: 258.
 assert.strictEqual(F.presetName(presets, { ...radios[1], name: 'UHF', freq: 258.285e6 }), null);
 assert.strictEqual(F.presetName(null, radios[1]), null);
 assert.strictEqual(F.presetName({ uhfguard: 'junk' }, radios[1]), null);
+// ▲/▼ on a preset: the next one in list order, wrapping, skipping presets on the same frequency.
+assert.strictEqual(F.presetStep(presets, radios[1], 1), 264.5);                               // UNICOM → ARCHANGEL
+assert.strictEqual(F.presetStep(presets, radios[1], -1), 264.5);                              // wraps; ALT 251 skipped
+assert.strictEqual(F.presetStep(presets, { ...radios[1], freq: 264.5e6 }, 1), 251);           // ARCHANGEL → ALT 251
+assert.strictEqual(F.presetStep(presets, { ...radios[1], freq: 264.525e6 }, 1), null);        // off preset
+assert.strictEqual(F.presetStep(presets, { ...radios[1], freqMax: 260e6 }, 1), null);         // only one out of range
+assert.strictEqual(F.presetStep(presets, { ...radios[1], name: 'UHF', freq: 258.28 * 1e6 }, 1), null); // a list of one
 
 // Volume taps snap to 5%.
 assert.strictEqual(F.volAt(0, 220), 0);
