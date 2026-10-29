@@ -93,7 +93,8 @@ In `BepInEx/config/com.roque.srs-module.cfg` (or BepInEx's configuration manager
   your SRS client uses for a moment, once per server each time you play. During that moment the
   server lists a client named **NOXMFD**. Turn this off if you'd rather it didn't connect.
 - **SRS client folder** (default `C:\Program Files\DCS-SimpleRadio-Standalone\Client`): where SRS's
-  client is installed. Its `global.cfg` says which server your SRS client last connected to.
+  client is installed. Its `global.cfg` says which server your SRS client last connected to. If
+  SRS is installed somewhere else, the extension finds it on its own; set this only if it doesn't.
 
 Restart the game after changing any of these.
 

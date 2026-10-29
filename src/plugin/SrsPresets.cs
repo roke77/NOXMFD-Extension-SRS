@@ -15,7 +15,8 @@ namespace SrsModule
         private const float CheckEvery = 5f, RetryAfter = 60f;
         private const int TimeoutMs = 5000;
 
-        private readonly string _globalCfg;
+        private readonly string _configuredFolder;
+        private string _globalCfg;
         private float _nextCheck;
         private bool _cfgWarned;
 
@@ -26,7 +27,29 @@ namespace SrsModule
 
         internal SrsPresets(string srsClientFolder)
         {
-            _globalCfg = Path.Combine(srsClientFolder, "global.cfg");
+            _configuredFolder = srsClientFolder;
+            _globalCfg = ResolveGlobalCfg();
+        }
+
+        private string ResolveGlobalCfg() => Path.Combine(
+            SrsPresetSync.ClientFolder(_configuredFolder, SrsInstallRoot(), f => File.Exists(Path.Combine(f, "global.cfg"))),
+            "global.cfg");
+
+        // The folder SRS's installer records in HKCU\SOFTWARE\DCS-SR-Standalone, or null. Through
+        // reflection because netstandard2.1 has no registry API, though the game's Mono mscorlib does.
+        private static string? SrsInstallRoot()
+        {
+            try
+            {
+                var getValue = Type.GetType("Microsoft.Win32.Registry, mscorlib")
+                    ?.GetMethod("GetValue", new[] { typeof(string), typeof(string), typeof(object) });
+                return getValue?.Invoke(null, new object?[] { @"HKEY_CURRENT_USER\SOFTWARE\DCS-SR-Standalone", "SRPathStandalone", null }) as string;
+            }
+            catch (Exception e)
+            {
+                Plugin.Log?.LogWarning($"[SRS] presets: can't read SRS's install folder from the registry ({e.GetBaseException().Message}).");
+                return null;
+            }
         }
 
         // The latest preset list as a raw JSON string (for a JSON string field), or null.
@@ -84,8 +107,10 @@ namespace SrsModule
             }
             catch (Exception e) when (e is FileNotFoundException || e is DirectoryNotFoundException)
             {
-                if (!_cfgWarned) Plugin.Log?.LogWarning($"[SRS] presets: {_globalCfg} not found; set \"SRS client folder\" to SRS's Client folder.");
+                if (!_cfgWarned) Plugin.Log?.LogWarning($"[SRS] presets: {_globalCfg} not found, and SRS's installer recorded no folder that has one; set \"SRS client folder\" to SRS's Client folder.");
                 _cfgWarned = true;
+                // The SRS client writes global.cfg on its first run, which can come after the game starts.
+                _globalCfg = ResolveGlobalCfg();
                 return null;
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)

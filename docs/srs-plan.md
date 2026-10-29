@@ -156,7 +156,10 @@ page ──POST /ext/srs/command──► handler (main thread) ──validate�
   `tools/cmdcheck` checks the parsing, and its `fetch [host[:port]]` mode runs the real fetch.
 - **Config** (BepInEx `.cfg`): state port (default 7082) and command port (default 9040), matching
   SRS's own settings; **Server presets** (on) and **SRS client folder** (default
-  `C:\Program Files\DCS-SimpleRadio-Standalone\Client`, where `global.cfg` is).
+  `C:\Program Files\DCS-SimpleRadio-Standalone\Client`, where `global.cfg` is). When that folder
+  has no `global.cfg`, the extension uses `Client` under the install folder SRS's installer
+  records (`HKCU\SOFTWARE\DCS-SR-Standalone`, `SRPathStandalone`), re-checked while neither
+  exists, since the SRS client writes `global.cfg` on its first run.
 - **Page** (`src/web/`): `srs.html`, `srs.css`, `srs.js`, plus a pure `srs-format.js` (the packet
   rules, speaker hold, MON default and scope geometry) with a `node` test, as in the other
   extensions. Reuses NOXMFD's `/assets/shared/theme.css`, `font.css` and `telemetry-source.js`.

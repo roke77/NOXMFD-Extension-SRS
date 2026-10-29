@@ -44,7 +44,7 @@ namespace SrsModule
             var serverPresets = Config.Bind("SRS", "Server presets", true,
                 "Show the SRS server's preset channel names. The extension reads them by connecting to the SRS server your SRS client uses, the way SRS's client does, for a moment (it shows as a client named NOXMFD). Restart the game after changing it.");
             var clientFolder = Config.Bind("SRS", "SRS client folder", @"C:\Program Files\DCS-SimpleRadio-Standalone\Client",
-                "SRS's Client folder; its global.cfg says which SRS server to read presets from. Restart the game after changing it.");
+                "SRS's Client folder; its global.cfg says which SRS server to read presets from. When global.cfg isn't there, the extension uses the folder SRS's installer recorded. Restart the game after changing it.");
 
             _registered = NOXMFD.Api.RegisterExtension(ExtId, "SRS", SrsPageAssets.Resolve, SrsCommands.Handle);
             if (!_registered)

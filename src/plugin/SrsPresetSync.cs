@@ -35,6 +35,16 @@ namespace SrsModule
             return null;
         }
 
+        // The SRS Client folder to read global.cfg from: the configured one when its global.cfg exists,
+        // else the Client folder under the install root SRS's installer recorded, else the configured
+        // one (so the not-found warning names the folder the player set).
+        internal static string ClientFolder(string configured, string? installRoot, Func<string, bool> hasGlobalCfg)
+        {
+            if (hasGlobalCfg(configured) || string.IsNullOrEmpty(installRoot)) return configured;
+            string detected = Path.Combine(installRoot, "Client");
+            return hasGlobalCfg(detected) ? detected : configured;
+        }
+
         // "host" or "host:port" → host and port (SRS's default when none is given), or false.
         internal static bool TryParseServer(string? server, out string host, out int port)
         {
