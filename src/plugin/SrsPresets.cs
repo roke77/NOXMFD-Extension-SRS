@@ -18,7 +18,7 @@ namespace SrsModule
         private readonly string _configuredFolder;
         private string _globalCfg;
         private float _nextCheck;
-        private bool _cfgWarned;
+        private bool _cfgWarned, _regWarned;
 
         // Written by the fetch thread, read by the main thread.
         private volatile string? _raw;         // SERVER_PRESETS as a raw JSON string
@@ -37,19 +37,28 @@ namespace SrsModule
 
         // The folder SRS's installer records in HKCU\SOFTWARE\DCS-SR-Standalone, or null. Through
         // reflection because netstandard2.1 has no registry API, though the game's Mono mscorlib does.
-        private static string? SrsInstallRoot()
+        // Re-read every check while global.cfg is missing, so a failure is logged once, not each time.
+        private string? SrsInstallRoot()
         {
             try
             {
                 var getValue = Type.GetType("Microsoft.Win32.Registry, mscorlib")
                     ?.GetMethod("GetValue", new[] { typeof(string), typeof(string), typeof(object) });
-                return getValue?.Invoke(null, new object?[] { @"HKEY_CURRENT_USER\SOFTWARE\DCS-SR-Standalone", "SRPathStandalone", null }) as string;
+                if (getValue != null)
+                    return getValue.Invoke(null, new object?[] { @"HKEY_CURRENT_USER\SOFTWARE\DCS-SR-Standalone", "SRPathStandalone", null }) as string;
+                WarnRegistryOnce("no registry API in this runtime");
             }
             catch (Exception e)
             {
-                Plugin.Log?.LogWarning($"[SRS] presets: can't read SRS's install folder from the registry ({e.GetBaseException().Message}).");
-                return null;
+                WarnRegistryOnce(e.GetBaseException().Message);
             }
+            return null;
+        }
+
+        private void WarnRegistryOnce(string why)
+        {
+            if (!_regWarned) Plugin.Log?.LogWarning($"[SRS] presets: can't read SRS's install folder from the registry ({why}).");
+            _regWarned = true;
         }
 
         // The latest preset list as a raw JSON string (for a JSON string field), or null.

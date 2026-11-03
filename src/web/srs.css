@@ -127,8 +127,8 @@ button:disabled { cursor: default; opacity: 0.35; }
 .who { color: var(--no-white); font-size: 16px; }
 /* The server preset the head's radio is on, beside ACTIVE. */
 .pre-n { color: var(--no-white); font-size: 16px; letter-spacing: 2px; }
-/* Compact's head: the readout is the keypad button, and a preset name, which can be long, reads large
-   with the frequency under it. */
+/* Compact's head: the readout is a button (the preset picker or the keypad), and a preset name, which
+   can be long, reads large with the frequency under it. */
 .tune { flex: 1; min-width: 0; padding: 6px 10px; margin: -6px -10px; border-radius: 4px; }
 .tune .act-f { display: flex; align-items: center; gap: 14px; max-width: 100%; }
 .pre-big { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
