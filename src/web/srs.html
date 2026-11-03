@@ -65,6 +65,19 @@
       </div>
     </div>
   </div>
+
+  <!-- Preset picker, opened by tapping compact's readout when the radio has server presets: one
+       tap tunes the radio to a preset; TYPE FREQ goes on to the keypad. -->
+  <div class="keypad-scrim" id="picker" hidden>
+    <div class="picker" role="dialog" aria-labelledby="pk-title">
+      <div class="kp-title" id="pk-title">PRESETS</div>
+      <div class="pk-grid" id="pk-grid"></div>
+      <div class="kp-actions">
+        <button class="key" id="pk-cancel">CANCEL</button>
+        <button class="key" id="pk-type">TYPE FREQ</button>
+      </div>
+    </div>
+  </div>
 </div>
 <script src="/ext/srs/srs-format.js"></script>
 <script type="module" src="/ext/srs/srs.js"></script>

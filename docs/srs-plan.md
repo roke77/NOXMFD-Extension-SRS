@@ -181,8 +181,13 @@ share the extra height.
 
 - **Compact:** the selected radio's head, then one row per radio. The head has no standby or swap:
   its top line is `R<n> <name>` and the TX/RX badge; its readout is the radio's preset name (large,
-  white) with the frequency under it when it's on one, else the frequency (large); tapping the
-  readout opens the keypad, whose ENTER sends `FREQUENCY_SET` straight to the radio. `▲`/`▼` step to
+  white) with the frequency under it when it's on one, else the frequency (large). Tapping the
+  readout opens the **preset picker** when the server has presets for the radio: an overlay with
+  every preset in the server's order (SRS's channel number and name; three columns, two in portrait,
+  four on the wide canvas; the list scrolls when it doesn't fit), the radio's current one in amber.
+  One tap sends `FREQUENCY_SET` with that preset and closes it; `TYPE FREQ` goes on to the keypad.
+  A list glyph beside the readout marks it. With no presets for the radio the tap opens the keypad
+  directly, whose ENTER sends `FREQUENCY_SET` straight to the radio. `▲`/`▼` step to
   the next or previous preset in the server's list for that radio, wrapping and skipping presets on
   its own frequency, or by 25 kHz off a preset, each sending `FREQUENCY_SET`. The status line has
   players tuned and volume or the speaker; no modulation. Each radio row has: TX/RX lamp, `R<n>`,

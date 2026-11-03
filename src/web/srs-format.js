@@ -115,11 +115,14 @@
   // A preset matches by frequency; SRS's `channel` (1-based, -1 = none) picks among presets that
   // share one, when it points at a matching entry. Within 1 Hz, not exact: SRS sets the radio to the
   // preset's MHz × 1e6 in doubles, so 258.28 arrives as 258279999.99999997.
-  function presetAt(presets, r) {
+  function presetList(presets, r) {
     if (!presets || typeof presets !== 'object' || !r) return null;
     const n = presetKey(r.name);
     const key = Object.keys(presets).find((k) => k && n.startsWith(k));
-    const list = key && Array.isArray(presets[key]) ? presets[key] : null;
+    return key && Array.isArray(presets[key]) ? presets[key] : null;
+  }
+  function presetAt(presets, r) {
+    const list = presetList(presets, r);
     if (!list) return null;
     const at = (p) => !!p && fin(p.Frequency) && Math.abs(p.Frequency * 1e6 - r.freq) < 1 && p.Name != null;
     const i = r.channel > 0 && at(list[r.channel - 1]) ? r.channel - 1 : list.findIndex(at);
@@ -128,6 +131,20 @@
   function presetName(presets, r) {
     const p = presetAt(presets, r);
     return p ? String(p.list[p.i].Name) : null;
+  }
+  // The radio's presets for the picker, in the server's order: n (SRS's 1-based channel number),
+  // name, mhz, and `on` for the one it's on. Entries without a usable frequency or outside the
+  // radio's range are left out; the rest keep their channel numbers.
+  function presetChoices(presets, r) {
+    const list = presetList(presets, r);
+    if (!list) return [];
+    const at = presetAt(presets, r), out = [];
+    list.forEach((q, i) => {
+      if (!q || q.Name == null || !fin(q.Frequency)) return;
+      const hz = q.Frequency * 1e6;
+      if (hz >= r.freqMin && hz <= r.freqMax) out.push({ n: i + 1, name: String(q.Name), mhz: q.Frequency, on: !!at && at.i === i });
+    });
+    return out;
   }
   // The MHz of the next preset in the radio's list in `dir` (±1), wrapping, from the one it's on;
   // null when it's on none or no other is in range. Presets on the radio's own frequency are skipped:
@@ -164,7 +181,7 @@
 
   const api = { DASH, MOD, BANDS, HOLD_MS, STEP_HZ, freq, modName, usable, com2Default, isTx,
     speaker, bandFor, scopeX, scopeBars, tunable, clampHz, stepHz, parseMhz, entryError,
-    com2Pick, monStep, fitCanvas, volAt, presetKey, presetName, presetStep };
+    com2Pick, monStep, fitCanvas, volAt, presetKey, presetName, presetStep, presetChoices };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.SrsFormat = api;
 })(this);

@@ -38,8 +38,9 @@ local state broadcast, so it doesn't modify NOXMFD or SRS.
   - **Compact** (the default): the selected radio's head, then a row per radio with its frequency,
     who's talking, players tuned, and a MUTE button. Tap a row to select that radio. The head
     shows the radio's preset name large when it's on one, with the frequency under it; ▲▼ step to
-    the next or previous preset (or by 25 kHz off a preset), and tapping the readout types a
-    frequency straight onto the radio.
+    the next or previous preset (or by 25 kHz off a preset). Tapping the readout lists the radio's
+    presets, so you can jump straight to any of them, or types a frequency onto the radio when
+    the server has none for it (TYPE FREQ on the list does the same).
   - **Dual band**: the band scope and two radio heads below.
 - **Band scope** for PTT's band (UHF AM, VHF AM or VHF FM): a bar for every frequency your radios
   are on, as tall as the number of players tuned to it. A bar glows

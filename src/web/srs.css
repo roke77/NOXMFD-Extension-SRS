@@ -166,6 +166,22 @@ button:disabled { cursor: default; opacity: 0.35; }
 .kp-enter { border-color: var(--no-amber); color: var(--no-amber); }
 .ico { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
 
+/* Preset picker: the keypad's overlay, wide enough for a server's full list, which scrolls. */
+.picker {
+  width: 820px; max-height: 88%; padding: 20px; background: var(--no-bg);
+  border: 1px solid var(--no-green-dark); border-radius: 6px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.pk-grid { min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.pk { height: 52px; justify-content: flex-start; gap: 10px; padding: 0 12px; font-size: 16px; }
+.pk.on { border-color: var(--no-amber); color: var(--no-amber); }
+.pk .pn { flex: 0 0 28px; text-align: right; color: var(--no-green-dim); }
+.pk .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.portrait .picker { width: 600px; }
+.portrait .pk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.wide .picker { width: 1100px; }
+.wide .pk-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
 /* Dual-band radio buttons */
 .rads-head { display: flex; justify-content: space-between; font-size: 13px; color: var(--no-green-dim); letter-spacing: 3px; }
 .rads { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: -6px; }

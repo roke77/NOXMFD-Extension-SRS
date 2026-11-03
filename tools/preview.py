@@ -56,8 +56,12 @@ live = {"packet": None, "at": 0.0, "error": None}
 MOCKS = {"idle": SAMPLES["idle"], "tx": SAMPLES["tx"], "rx": RX, "busy": BUSY, "presets": BUSY}
 # The server's SERVER_PRESETS setting for the presets scenario (the slice carries it as a string).
 PRESETS = json.dumps({
+    # A list as long as a busy server's, so the picker scrolls.
     "uhfguard": [{"Name": "UNICOM", "Frequency": 251}, {"Name": "ARCHANGEL", "Frequency": 264.5},
-                 {"Name": "SPECTRE/COMMAND", "Frequency": 305.25}],
+                 {"Name": "SPECTRE/COMMAND", "Frequency": 305.25}] +
+                [{"Name": n, "Frequency": 310 + 2.5 * k} for k, n in enumerate(
+                    "SANDBOX PADDLES SKYNET WYVERN PHOENIX REAPER SCORPION LINDWYRM PANTHER LYNX CHEETAH "
+                    "COBRA VIPER HORNET FALCON EAGLE OSPREY RAVEN TALON SABRE GHOST HAVOC".split())],
     "vhfguard": [{"Name": "TOWER", "Frequency": 124.8}, {"Name": "APPROACH", "Frequency": 131}],
     "vhffm": [{"Name": "LONGBOAT", "Frequency": 30}]})
 SRS_CLIENT = Path(r"C:\Program Files\DCS-SimpleRadio-Standalone\Client")

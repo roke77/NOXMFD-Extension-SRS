@@ -155,18 +155,21 @@ function comHtml(n, v, title) {
 }
 
 // Compact's head: SRS's selected radio with no standby. Its preset name, when it's on one, reads
-// large over the frequency; tapping the readout types a frequency straight onto the radio, and
-// ▲ / ▼ step through the server's presets while it's on one, else by 25 kHz.
+// large over the frequency; tapping the readout opens the preset picker when the radio has server
+// presets, else the keypad, which types a frequency straight onto the radio. ▲ / ▼ step through
+// the server's presets while it's on one, else by 25 kHz.
+const LIST = '<svg class="kp-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v2.4H4zM4 10.8h16v2.4H4zM4 15.6h16V18H4z"/></svg>';
 function cptHtml(v) {
   const i = v ? v.com[1] : -1;
   const r = v && i > 0 ? v.radios[i] : null;
   const tx = r && F.isTx(v.send, i), rx = r && v.rx[i];
   const disabled = F.tunable(r) ? '' : ' disabled';
   const pre = r && v.names[i];
-  const big = pre ? `<span class="pre-big">${esc(pre)}</span>` : `${r ? F.freq(r.freq) : F.DASH}${r ? KP : ''}`;
+  const listed = r && F.presetChoices(presets, r).length > 0, ico = listed ? LIST : KP;
+  const big = pre ? `<span class="pre-big">${esc(pre)}</span>` : `${r ? F.freq(r.freq) : F.DASH}${r ? ico : ''}`;
   return `<div class="com-top"><span class="com-name">${r ? `R${i} ${esc(r.name)}` : F.DASH}</span>${badgeHtml(tx, rx)}</div>
     <div class="com-mid">
-      <button class="act tune" data-act="tune" data-com="1" aria-label="R${i} frequency, tap to type"${disabled}><span class="act-f">${big}</span>${pre ? `<span class="act-sub">${F.freq(r.freq)} MHZ${KP}</span>` : ''}</button>
+      <button class="act tune" data-act="tune" data-com="1" aria-label="R${i} ${listed ? 'presets' : 'frequency, tap to type'}"${disabled}><span class="act-f">${big}</span>${pre ? `<span class="act-sub">${F.freq(r.freq)} MHZ${ico}</span>` : ''}</button>
       <div class="steps"><button data-act="cstep" data-dir="1" aria-label="${pre ? 'Next preset' : 'Frequency up'}"${disabled}>▲</button><button data-act="cstep" data-dir="-1" aria-label="${pre ? 'Previous preset' : 'Frequency down'}"${disabled}>▼</button></div>
     </div>
     <div class="com-foot">${r ? `<span>${v.tuned[i] || 0} TUNED</span>` : ''}
@@ -258,7 +261,7 @@ function render(v, status, bad) {
   setHtml('rads', radsHtml(v));
   setHtml('cpt', cptHtml(v));
   setHtml('rows', rowsHtml(v));
-  if (!v) closeKeypad();
+  if (!v) { closeKeypad(); closePicker(); }
 }
 
 function showLayout() {
@@ -318,7 +321,11 @@ const ACTIONS = {
   up(n) { step(n, 1); },
   down(n) { step(n, -1); },
   sby(n) { openKeypad(n, false); },
-  tune(n) { openKeypad(n, true); },
+  tune(n) {
+    const c = comRadio(n), choices = c ? F.presetChoices(presets, c.r) : [];
+    if (choices.length) openPicker(c, choices);
+    else openKeypad(n, true);
+  },
   cstep(_, e, el) {
     const c = comRadio(1), dir = Number(el.dataset.dir);
     if (c) post({ cmd: 'freq', radio: c.i, mhz: F.presetStep(presets, c.r, dir) ?? F.stepHz(c.r.freq, dir, c.r) / 1e6 });
@@ -363,7 +370,7 @@ function step(n, dir) {
 }
 
 document.addEventListener('click', (e) => {   // the canvas and the header's layout toggle
-  if (e.target.closest('#keypad')) return;
+  if (e.target.closest('#keypad, #picker')) return;
   const el = e.target.closest('[data-act]');
   if (!el || el.disabled) return;
   ACTIONS[el.dataset.act](Number(el.dataset.com), e, el);
@@ -417,6 +424,32 @@ $('kp-grid').addEventListener('click', (e) => {
 });
 $('kp-cancel').addEventListener('click', closeKeypad);
 $('kp-enter').addEventListener('click', kpEnter);
+
+// ── preset picker ───────────────────────────────────────────────────────────────────────────
+let pkRadio = 0;   // the radio the open picker tunes
+
+function openPicker(c, choices) {
+  pkRadio = c.i;
+  $('pk-title').textContent = `R${c.i} PRESETS`;
+  $('pk-grid').innerHTML = choices.map((p) =>
+    `<button class="key pk${p.on ? ' on' : ''}" data-mhz="${p.mhz}" aria-label="${esc(p.name)}, ${F.freq(p.mhz * 1e6)} MHZ"><span class="pn">${p.n}</span><span class="nm">${esc(p.name)}</span></button>`).join('');
+  $('picker').hidden = false;
+  $('pk-grid').querySelector('.on')?.scrollIntoView({ block: 'center' });
+}
+
+function closePicker() {
+  pkRadio = 0;
+  $('picker').hidden = true;
+}
+
+$('pk-grid').addEventListener('click', (e) => {
+  const mhz = Number(e.target.closest('[data-mhz]')?.dataset.mhz);
+  if (!pkRadio || !Number.isFinite(mhz)) return;
+  post({ cmd: 'freq', radio: pkRadio, mhz });
+  closePicker();
+});
+$('pk-cancel').addEventListener('click', closePicker);
+$('pk-type').addEventListener('click', () => { closePicker(); openKeypad(1, true); });
 
 // ── telemetry ───────────────────────────────────────────────────────────────────────────────
 // SRS runs apart from the game, so the page follows its slice wherever it arrives: real frames and
