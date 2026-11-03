@@ -44,8 +44,8 @@
   <div class="rads" id="rads"></div>
   </div>
 
-  <!-- Standby-frequency keypad, opened by tapping a head's STANDBY readout (the NOAutopilot
-       page's keypad, adapted for frequencies). -->
+  <!-- Frequency keypad (the NOAutopilot page's, adapted for frequencies): a dual band head's
+       STANDBY readout sets the standby; compact's readout tunes the radio directly. -->
   <div class="keypad-scrim" id="keypad" hidden>
     <div class="keypad" role="dialog" aria-labelledby="kp-title">
       <div class="kp-title" id="kp-title">STANDBY MHZ</div>
@@ -62,6 +62,19 @@
       <div class="kp-actions">
         <button class="key" id="kp-cancel">CANCEL</button>
         <button class="key kp-enter" id="kp-enter">ENTER</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preset picker, opened by tapping compact's readout when the radio has server presets: one
+       tap tunes the radio to a preset; TYPE FREQ goes on to the keypad. -->
+  <div class="keypad-scrim" id="picker" hidden>
+    <div class="picker" role="dialog" aria-labelledby="pk-title">
+      <div class="kp-title" id="pk-title">PRESETS</div>
+      <div class="pk-grid" id="pk-grid"></div>
+      <div class="kp-actions">
+        <button class="key" id="pk-cancel">CANCEL</button>
+        <button class="key" id="pk-type">TYPE FREQ</button>
       </div>
     </div>
   </div>

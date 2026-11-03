@@ -48,6 +48,12 @@ static class Program
         Expect(SrsPresetSync.LastServer(new[] { "[General]", "LastServer=10.0.0.5:5003\r", "X=1" }), "10.0.0.5:5003", "LastServer");
         Expect(SrsPresetSync.LastServer(new[] { "LastServer=" }), null, "LastServer empty");
         Expect(SrsPresetSync.LastServer(new[] { "LastPresetsFolder=" }), null, "LastServer missing");
+        Func<string, bool> has(string folder) => f => f == folder;
+        string detected = System.IO.Path.Combine(@"D:\SRS", "Client");
+        Expect(SrsPresetSync.ClientFolder(@"C:\Cfg", @"D:\SRS", has(@"C:\Cfg")), @"C:\Cfg", "client folder: configured wins");
+        Expect(SrsPresetSync.ClientFolder(@"C:\Cfg", @"D:\SRS", has(detected)), detected, "client folder: installer's");
+        Expect(SrsPresetSync.ClientFolder(@"C:\Cfg", @"D:\SRS", has("")), @"C:\Cfg", "client folder: neither has global.cfg");
+        Expect(SrsPresetSync.ClientFolder(@"C:\Cfg", null, has("")), @"C:\Cfg", "client folder: nothing recorded");
         Expect(Server("srs.example.com"), "srs.example.com:5002", "server default port");
         Expect(Server("127.0.0.1:5010"), "127.0.0.1:5010", "server with port");
         Expect(Server("host:99999"), null, "server port out of range");

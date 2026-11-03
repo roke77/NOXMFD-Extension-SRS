@@ -124,11 +124,24 @@ assert.strictEqual(F.presetName(presets, { ...radios[1], channel: 2 }), 'UNICOM'
 assert.strictEqual(F.presetName(presets, { ...radios[1], freq: 264.525e6, channel: -1 }), null); // typed off-preset
 assert.strictEqual(F.presetName(presets, radios[3]), 'LONGBOAT');                             // VHF FM on 30
 assert.strictEqual(F.presetName(presets, radios[6]), null);                                   // VHF Guard: no list
+// The picker's list: server order with SRS's channel numbers, the radio's own preset marked.
+assert.deepStrictEqual(F.presetChoices(presets, radios[1]).map((c) => `${c.n} ${c.name} ${c.mhz}${c.on ? ' *' : ''}`),
+  ['1 UNICOM 251 *', '2 ARCHANGEL 264.5', '3 ALT 251 251']);
+assert.deepStrictEqual(F.presetChoices(presets, { ...radios[1], freqMax: 260e6 }).map((c) => c.n), [1, 3]); // out of range dropped
+assert.deepStrictEqual(F.presetChoices({ uhfguard: [{ Name: 'X' }, null, { Name: 'Y', Frequency: 300 }] }, radios[1]).map((c) => c.n), [3]);
+assert.deepStrictEqual(F.presetChoices(presets, radios[6]), []);                             // no list for VHF Guard
 // SRS's double: 258.28 MHz × 1e6 isn't a whole number of Hz.
 assert.strictEqual(F.presetName(presets, { ...radios[1], name: 'UHF', freq: 258.28 * 1e6 }), 'SPECTRE');
 assert.strictEqual(F.presetName(presets, { ...radios[1], name: 'UHF', freq: 258.285e6 }), null);
 assert.strictEqual(F.presetName(null, radios[1]), null);
 assert.strictEqual(F.presetName({ uhfguard: 'junk' }, radios[1]), null);
+// ▲/▼ on a preset: the next one in list order, wrapping, skipping presets on the same frequency.
+assert.strictEqual(F.presetStep(presets, radios[1], 1), 264.5);                               // UNICOM → ARCHANGEL
+assert.strictEqual(F.presetStep(presets, radios[1], -1), 264.5);                              // wraps; ALT 251 skipped
+assert.strictEqual(F.presetStep(presets, { ...radios[1], freq: 264.5e6 }, 1), 251);           // ARCHANGEL → ALT 251
+assert.strictEqual(F.presetStep(presets, { ...radios[1], freq: 264.525e6 }, 1), null);        // off preset
+assert.strictEqual(F.presetStep(presets, { ...radios[1], freqMax: 260e6 }, 1), null);         // only one out of range
+assert.strictEqual(F.presetStep(presets, { ...radios[1], name: 'UHF', freq: 258.28 * 1e6 }, 1), null); // a list of one
 
 // Volume taps snap to 5%.
 assert.strictEqual(F.volAt(0, 220), 0);

@@ -17,7 +17,7 @@ NOXMFD's no-aircraft ping (main menu, spawn screen), which carries the slice too
   no-data, port-busy, stale
 POST /ext/srs/command is checked like SrsCommandMap.cs; in live mode the datagram goes to the real
 SRS on UDP 9040, otherwise a rough simulation applies it to the mock. GET /commands lists them.
-GET /shot?layout=compact|dual switches to busy, seeds the page's own saved state (standby
+GET /shot?layout=compact|dual switches to presets, seeds the page's own saved state (standby
 frequencies, MON on R1) and opens the page in that layout: the README screenshots.
 """
 import copy, json, socket, sys, threading, time, uuid
@@ -56,8 +56,12 @@ live = {"packet": None, "at": 0.0, "error": None}
 MOCKS = {"idle": SAMPLES["idle"], "tx": SAMPLES["tx"], "rx": RX, "busy": BUSY, "presets": BUSY}
 # The server's SERVER_PRESETS setting for the presets scenario (the slice carries it as a string).
 PRESETS = json.dumps({
+    # A list as long as a busy server's, so the picker scrolls.
     "uhfguard": [{"Name": "UNICOM", "Frequency": 251}, {"Name": "ARCHANGEL", "Frequency": 264.5},
-                 {"Name": "SPECTRE/COMMAND", "Frequency": 305.25}],
+                 {"Name": "SPECTRE/COMMAND", "Frequency": 305.25}] +
+                [{"Name": n, "Frequency": 310 + 2.5 * k} for k, n in enumerate(
+                    "SANDBOX PADDLES SKYNET WYVERN PHOENIX REAPER SCORPION LINDWYRM PANTHER LYNX CHEETAH "
+                    "COBRA VIPER HORNET FALCON EAGLE OSPREY RAVEN TALON SABRE GHOST HAVOC".split())],
     "vhfguard": [{"Name": "TOWER", "Frequency": 124.8}, {"Name": "APPROACH", "Frequency": 131}],
     "vhffm": [{"Name": "LONGBOAT", "Frequency": 30}]})
 SRS_CLIENT = Path(r"C:\Program Files\DCS-SimpleRadio-Standalone\Client")
@@ -201,7 +205,7 @@ class H(BaseHTTPRequestHandler):
             except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 return
         if path == "/shot":
-            state["s"] = "busy"
+            state["s"] = "presets"
             layout = "dual" if parse_qs(u.query).get("layout") == ["dual"] else "compact"
             seed = {"standby": {"2": 264.5e6, "1": 282e6}, "com2": 1, "layout": layout}
             sets = "".join(f"localStorage.setItem('srs.{k}', {json.dumps(json.dumps(v))});" for k, v in seed.items())
