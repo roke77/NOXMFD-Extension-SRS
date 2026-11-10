@@ -33,6 +33,7 @@ function fitStage() {
   st.style.height = c.H + 'px';
   st.style.transform = `translate(${(innerWidth - c.W * c.s) / 2}px, ${top + (innerHeight - top - pad - c.H * c.s) / 2}px) scale(${c.s})`;
   if (scopeW() !== was) rerender(); // the scope's geometry follows the canvas width
+  pkRows(); // portrait/wide change the picker's column count
 }
 
 // ── page state ──────────────────────────────────────────────────────────────────────────────
@@ -434,7 +435,15 @@ function openPicker(c, choices) {
   $('pk-grid').innerHTML = choices.map((p) =>
     `<button class="key pk${p.on ? ' on' : ''}" data-mhz="${p.mhz}" aria-label="${esc(p.name)}, ${F.freq(p.mhz * 1e6)} MHZ"><span class="pn">${p.n}</span><span class="nm">${esc(p.name)}</span></button>`).join('');
   $('picker').hidden = false;
+  pkRows();
   $('pk-grid').querySelector('.on')?.scrollIntoView({ block: 'center' });
+}
+
+// The list reads down each column (srs.css .pk-grid flows by column), which needs an explicit row
+// count for the layout's column count, --pk-cols.
+function pkRows() {
+  const g = $('pk-grid'), cols = parseInt(getComputedStyle(g).getPropertyValue('--pk-cols'), 10) || 3;
+  g.style.gridTemplateRows = `repeat(${Math.ceil(g.children.length / cols)}, auto)`;
 }
 
 function closePicker() {
