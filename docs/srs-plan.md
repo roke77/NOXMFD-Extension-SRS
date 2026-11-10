@@ -11,7 +11,8 @@ checked in the preview. Showing SRS without a spawn (NOXMFD 0.80.0), TGT's page 
 title row are released as 0.6.0, checked in the game. The compact head's preset controls (the
 name large, ▲▼ through presets, the preset picker), finding SRS's install folder and the player's
 SRS name in the header are released as 0.7.0; preset names and ▲▼ checked in the game by a
-tester, the picker in the preview. The project runs in two phases:
+tester, the picker in the preview. The picker numbering down each column is released as 0.7.1,
+checked in the preview. The project runs in two phases:
 
 - **Phase 1 — read-only SRS page.** An EXT page that shows every SRS radio: frequency,
   modulation, name, how many players are tuned, and who is transmitting or receiving.
