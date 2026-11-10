@@ -187,7 +187,7 @@ share the extra height.
   white) with the frequency under it when it's on one, else the frequency (large). Tapping the
   readout opens the **preset picker** when the server has presets for the radio: an overlay with
   every preset in the server's order (SRS's channel number and name; three columns, two in portrait,
-  four on the wide canvas; the list scrolls when it doesn't fit), the radio's current one in amber.
+  four on the wide canvas, numbered down each column; the list scrolls when it doesn't fit), the radio's current one in amber.
   One tap sends `FREQUENCY_SET` with that preset and closes it; `TYPE FREQ` goes on to the keypad.
   A list glyph beside the readout marks it. With no presets for the radio the tap opens the keypad
   directly, whose ENTER sends `FREQUENCY_SET` straight to the radio. `▲`/`▼` step to
